@@ -1,46 +1,46 @@
-# Getting Started with Create React App
+# 테스트
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+나의 호르몬 성향을 알아보는 심리테스트입니다.
 
-## Available Scripts
+## 기술 스택
 
-In the project directory, you can run:
+-   **Frontend**: React 19, TypeScript, Vite
+-   **Styling**: Tailwind CSS, shadcn/ui
+-   **Database**: Supabase (PostgreSQL)
+-   **State Management**: React Hooks
 
-### `npm start`
+## 주요 기능
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+-   🧠 10문항 심리테스트
+-   📊 실시간 점수 계산
+-   🎨 현대적인 Glassmorphism UI
+-   📱 반응형 디자인
+-   💾 Supabase를 통한 결과 저장
+-   📈 전체 결과 통계 확인
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 프로젝트 구조
 
-### `npm test`
+```
+src/
+├── components/
+│   ├── ui/
+│   │   └── button.tsx          # shadcn/ui Button 컴포넌트
+│   ├── GenderSelection.tsx     # 성별 선택 컴포넌트
+│   ├── Questionnaire.tsx       # 질문지 컴포넌트
+│   ├── Result.tsx              # 개인 결과 컴포넌트
+│   └── ResultsPage.tsx         # 전체 결과 페이지
+├── lib/
+│   ├── supabase.ts             # Supabase 클라이언트 및 함수
+│   └── utils.ts                # 유틸리티 함수
+├── App.tsx                     # 메인 앱 컴포넌트
+└── index.css                   # Tailwind CSS 설정
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 배포
 
-### `npm run build`
+### Netlify 배포
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. GitHub에 코드를 푸시합니다.
+2. [Netlify](https://netlify.com)에서 새 사이트를 생성합니다.
+3. 환경 변수를 설정합니다.
+4. 배포를 완료합니다.
