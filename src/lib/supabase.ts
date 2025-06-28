@@ -7,7 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+    },
+});
 
 // 결과 저장을 위한 타입 정의
 export interface TestResultData {
@@ -51,4 +57,18 @@ export const getTestResults = async () => {
         console.error('Failed to fetch test results:', error);
         throw error;
     }
+};
+
+// 카카오 OAuth 설정
+export const signInWithKakao = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: {
+                prompt: 'select_account',
+            },
+        },
+    });
+    return { data, error };
 };

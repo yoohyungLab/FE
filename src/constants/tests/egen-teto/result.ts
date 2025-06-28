@@ -10,7 +10,7 @@ interface ResultData {
 export const resultData: Record<TestResult, ResultData> = {
     'egen-male': {
         title: '에겐남',
-        description: '말보다 마음을 읽는 타입. 섬세하지만 강한 내면을 지닌 당신은 팀의 숨은 중심이자 따뜻한 리더예요.',
+        description: '말보다 마음을 읽는 타입! \n섬세하지만 강한 내면을 지닌 당신은\n팀의 숨은 중심이자 따뜻한 리더예요.',
         characteristics: [
             '감정의 흐름을 빠르게 캐치하고, 공감 능력으로 분위기를 이끎',
             '겉으로는 조용하지만, 누군가에게는 깊은 위로가 되는 존재',
@@ -22,7 +22,7 @@ export const resultData: Record<TestResult, ResultData> = {
     },
     'egen-female': {
         title: '에겐녀',
-        description: '따뜻함이 자연스럽게 스며드는 사람. 섬세하고 감성적인 당신은 주변 사람들에게 심리적 안식처 같은 존재예요.',
+        description: '따뜻함이 자연스럽게 스며드는 사람! \n섬세하고 감성적인 당신은\n주변 사람들에게 심리적 안식처 같은 존재예요.',
         characteristics: [
             '말 한마디에도 진심이 담겨 있어 듣는 사람을 안심시킴',
             '누군가 슬퍼 보이면 먼저 다가가 따뜻하게 위로해주는 스타일',
@@ -34,7 +34,7 @@ export const resultData: Record<TestResult, ResultData> = {
     },
     'teto-male': {
         title: '테토남',
-        description: '거침없는 직진형. 할 말은 확실히 하고 책임도 끝까지 지는 묵직한 존재감의 소유자예요.',
+        description: '거침없는 직진형! \n할 말은 확실히 하고 책임도 끝까지 지는\n묵직한 존재감의 소유자예요.',
         characteristics: [
             '솔직하고 과감한 커뮤니케이션 스타일로 갈등도 빠르게 해결',
             '계획보단 실행, 말보단 행동으로 보여주는 타입',
@@ -46,7 +46,7 @@ export const resultData: Record<TestResult, ResultData> = {
     },
     'teto-female': {
         title: '테토녀',
-        description: '강단 있고 자신감 넘치는 분위기의 핵인싸. 도전 앞에서 망설임이란 없는 전형적인 걸크러쉬 스타일이에요.',
+        description: '강단 있고 자신감 넘치는 분위기의 핵인싸! \n도전 앞에서 망설임이란 없는 전형적인 걸크러쉬 스타일이에요.',
         characteristics: [
             '무리 속에서도 단연 눈에 띄는 리더형 에너지',
             '하고 싶은 건 반드시 해내고야 마는 추진력',
@@ -58,7 +58,7 @@ export const resultData: Record<TestResult, ResultData> = {
     },
     mixed: {
         title: '혼합형',
-        description: '에겐의 섬세함과 테토의 추진력을 동시에 지닌 균형형 인간. 어떤 상황에서도 자신만의 최적 해답을 찾아내는 능력자예요.',
+        description: '에겐의 섬세함과 테토의 추진력을 동시에 지닌 균형형 인간! \n어떤 상황에서도 자신만의 최적 해답을 찾아내는 능력자예요.',
         characteristics: [
             '사람을 대할 땐 따뜻하게, 문제를 대할 땐 냉철하게',
             '감성과 논리를 유연하게 오가며 상대와 상황에 맞는 태도를 보여줌',
