@@ -1,12 +1,11 @@
-import React from 'react';
-import { Gender } from '../App';
-import { Button } from './ui/button';
+import { Gender } from '@/types/result';
+import { Button } from '@/components/ui/button';
 
 interface GenderSelectionProps {
     onSelect: (gender: Gender) => void;
 }
 
-const GenderSelection: React.FC<GenderSelectionProps> = ({ onSelect }) => {
+function GenderSelection({ onSelect }: GenderSelectionProps) {
     return (
         <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl">
             <h2 className="text-2xl md:text-3xl font-semibold text-white mb-8 text-center">성별을 선택해주세요</h2>
@@ -32,6 +31,6 @@ const GenderSelection: React.FC<GenderSelectionProps> = ({ onSelect }) => {
             </div>
         </div>
     );
-};
+}
 
 export default GenderSelection;
