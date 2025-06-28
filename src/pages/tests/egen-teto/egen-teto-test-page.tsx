@@ -32,7 +32,7 @@ const EgenTetoTestPage: React.FC = () => {
     return (
         <div
             className="min-h-screen flex items-center justify-center px-10 bg-no-repeat bg-top bg-cover"
-            style={{ backgroundImage: "url('/images/background.png')" }}
+            style={{ backgroundImage: "url('/images/egen-teto/background.png')" }}
         >
             {currentStep === 'questionnaire' && (
                 <div className="absolute inset-0 bg-white/20 backdrop-blur-sm z-0 transition-all duration-300" />

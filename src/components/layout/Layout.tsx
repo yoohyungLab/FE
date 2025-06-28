@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
+import { useAuth } from '@/lib/auth';
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+    const { checkAuth } = useAuth();
+
+    useEffect(() => {
+        // 앱 시작 시 인증 상태 확인
+        checkAuth();
+    }, [checkAuth]);
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* 모바일 우선: 중앙 정렬, 최대 너비 제한 */}

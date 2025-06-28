@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from '@/components/layout/layout';
 import HomePage from '@/pages/home-page';
 import { EgenTetoTestPage, TestResultPage, TestCallbackPage } from '@/pages/tests/egen-teto';
+import AuthCallbackPage from '@/pages/auth-callback-page';
 import AdSense from '@/components/ads/ad-sense';
 import './index.css';
 
@@ -12,6 +13,7 @@ function App() {
             <Layout>
                 <Routes>
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/auth/callback" element={<AuthCallbackPage />} />
                     <Route path="/tests/egen-teto" element={<EgenTetoTestPage />} />
                     <Route path="/tests/egen-teto/callback" element={<TestCallbackPage />} />
                     <Route path="/tests/egen-teto/result" element={<TestResultPage />} />

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
+// auth 옵션 포함 완전한 설정
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -72,3 +73,25 @@ export const signInWithKakao = async () => {
     });
     return { data, error };
 };
+
+// 타입 정의
+export interface Profile {
+    id: string;
+    email?: string;
+    name: string;
+    avatar_url?: string;
+    provider: 'kakao' | 'email' | 'google';
+    kakao_id?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TestResult {
+    id: string;
+    user_id: string;
+    test_type: string;
+    result_data: any;
+    score: number;
+    gender: 'male' | 'female';
+    created_at: string;
+}

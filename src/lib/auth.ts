@@ -49,7 +49,17 @@ export const useAuth = create<AuthState>((set, get) => ({
                 });
                 if (error) throw error;
                 if (data.user) {
-                    set({ user: data.user });
+                    const userWithProfile = {
+                        ...data.user,
+                        name:
+                            data.user.user_metadata?.name ||
+                            data.user.user_metadata?.full_name ||
+                            data.user.email?.split('@')[0] ||
+                            '사용자',
+                        avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture,
+                        provider: (data.user.app_metadata?.provider as 'kakao' | 'google' | 'email') || 'email',
+                    };
+                    set({ user: userWithProfile });
                 }
             }
         } catch (error) {
@@ -99,8 +109,16 @@ export const useAuth = create<AuthState>((set, get) => ({
             const {
                 data: { user },
             } = await supabase.auth.getUser();
+
             if (user) {
-                set({ user });
+                // 사용자 메타데이터에서 추가 정보 가져오기
+                const userWithProfile = {
+                    ...user,
+                    name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || '사용자',
+                    avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+                    provider: (user.app_metadata?.provider as 'kakao' | 'google' | 'email') || 'email',
+                };
+                set({ user: userWithProfile });
             }
         } catch (error) {
             console.error('Auth check error:', error);
