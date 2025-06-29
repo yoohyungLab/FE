@@ -91,7 +91,7 @@ function Header() {
                         <h1 className="text-lg font-bold text-gray-900 tracking-tight">유형연구소</h1>
                     </Link>
 
-                    <div className="md:hidden">
+                    <div>
                         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                             <DrawerTrigger asChild>
                                 <Button variant="ghost" size="icon" className="text-gray-700 hover:text-pink-500 hover:bg-gray-100">

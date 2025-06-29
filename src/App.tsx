@@ -1,11 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from '@/components/layout/layout';
-import HomePage from '@/pages/home-page';
-import { EgenTetoTestPage, TestResultPage, TestCallbackPage } from '@/pages/tests/egen-teto';
-import AuthCallbackPage from '@/pages/auth-callback-page';
+import HomePage from '@/pages/home/home-page';
+import AuthCallbackPage from '@/pages/auth/auth-callback-page';
+import { testRoutes } from '@/routes/test-routes';
 import AdSense from '@/components/ads/ad-sense';
 import './index.css';
+import { FavoritesPage } from './pages/favorites';
 
 function App() {
     return (
@@ -14,13 +15,13 @@ function App() {
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                    <Route path="/tests/egen-teto" element={<EgenTetoTestPage />} />
-                    <Route path="/tests/egen-teto/callback" element={<TestCallbackPage />} />
-                    <Route path="/tests/egen-teto/result" element={<TestResultPage />} />
-                    {/* 추가 테스트 페이지들 */}
-                    {/* <Route path="/tests/mbti" element={<div className="p-8 text-center">MBTI 테스트 (준비 중)</div>} />
-                    <Route path="/tests/enneagram" element={<div className="p-8 text-center">에니어그램 테스트 (준비 중)</div>} />
-                    <Route path="/tests/iq" element={<div className="p-8 text-center">IQ 퀴즈 (준비 중)</div>} /> */}
+
+                    {/* 테스트 라우트들을 동적으로 생성 */}
+                    {testRoutes.map(({ path, element }) => (
+                        <Route key={path} path={path} element={element} />
+                    ))}
+
+                    <Route path="/favorites" element={<FavoritesPage />} />
                 </Routes>
             </Layout>
 

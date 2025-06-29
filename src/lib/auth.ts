@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from './supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
@@ -93,10 +94,12 @@ export const useAuth = create<AuthState>((set, get) => ({
     },
 
     signOut: async () => {
+        const navigate = useNavigate();
         try {
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
             set({ user: null });
+            navigate('/');
         } catch (error) {
             console.error('Sign out error:', error);
             throw error;

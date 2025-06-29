@@ -20,7 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* 모바일 우선: 중앙 정렬, 최대 너비 제한 */}
             <div className="w-full max-w-mobile mx-auto bg-white shadow-2xl">
                 <Header />
-                <main className="flex-1 px-4 py-6 min-h-screen">{children}</main>
+                <main className="flex-1 p-4 min-h-screen">{children}</main>
                 <Footer />
             </div>
 

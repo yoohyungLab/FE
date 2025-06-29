@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Gender } from '@/types/result';
 import { questions } from '@/constants/tests/egen-teto';
+import { Button } from '@/components/ui/button';
 
 interface QuestionProps {
     gender: Gender;

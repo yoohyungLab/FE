@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GenderSelection from '@/components/gender-selection';
-import Question from '@/components/question';
+import GenderSelection from '@/components/common/gender-selection';
+import Question from '@/components/tests/egen-teto/question';
 import { TestResult, Gender } from '@/types/result';
 
 const EgenTetoTestPage: React.FC = () => {
