@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/shared/lib/auth';
 
 const AuthCallbackPage: React.FC = () => {
     const navigate = useNavigate();

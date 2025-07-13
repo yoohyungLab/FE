@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { testApi } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
+import { testApi } from '@/shared/lib/supabase';
+import { Button } from '@/shared/ui/button';
 import { Share2 } from 'lucide-react';
 
 interface TestResult {

@@ -1,10 +1,10 @@
 import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { resultData } from '@/constants/tests/egen-teto';
-import { TestResult } from '@/types/result';
+import { Button } from '@/shared/ui/button';
+import { TestResult } from '@/shared/types/result';
 import { Share2 } from 'lucide-react';
-import { resultBgImages } from '@/constants/tests/egen-teto/result-bg-images';
+import { resultBgImages } from '@/shared/constants/tests/egen-teto/result-bg-images';
+import { resultData } from '@/shared/constants/tests/egen-teto/result';
 
 const TestResultPage: React.FC = () => {
     const [searchParams] = useSearchParams();

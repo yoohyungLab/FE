@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { CarouselCard } from '@/components/ui/cards/carousel-card';
-import { HomeCard } from '@/components/ui/card';
-import { useAuth } from '@/lib/auth';
-import { useFavorites } from '@/hooks/use-favorites';
-import { tests, balanceGames, topTestsByType } from '@/constants/tests/egen-teto';
-import { testApi, sectionApi } from '@/lib/supabase';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/shared/ui/carousel';
+import { HomeCard } from '@/shared/ui/card';
+import { useAuth } from '@/shared/lib/auth';
+import { useFavorites } from '@/shared/hooks/use-favorites';
+import { testApi, sectionApi } from '@/shared/lib/supabase';
+import { CarouselCard } from '@/shared/ui/carousel-card';
+import { balanceGames, tests, topTestsByType } from '@/shared/constants/tests/egen-teto/test-list';
 
 interface DynamicTest {
     id: string;
@@ -178,63 +178,69 @@ export default function HomePage() {
             {/* 요즘 뜨는 테스트 */}
             <section className="space-y-4 mt-12">
                 <h2 className="text-xl font-bold text-gray-900">🔥 요즘 뜨는 테스트</h2>
-                <Carousel
-                    opts={{
-                        align: 'start',
-                        loop: true,
-                    }}
-                    className="w-full"
-                >
-                    <CarouselContent className="-ml-2 md:-ml-4">
+                <Carousel className="w-full">
+                    <CarouselContent className="-ml-2">
                         {finalTrendingTests.map((test) => (
-                            <CarouselItem key={test.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3">
+                            <CarouselItem key={test.id} className="pl-2 basis-[280px]">
                                 <CarouselCard
                                     id={test.id}
                                     title={test.title}
                                     description={test.description}
                                     image={test.image}
+                                    tag={test.tag}
                                     isFavorite={isFavorite(test.id)}
                                     onToggleFavorite={toggleFavorite}
                                 />
                             </CarouselItem>
                         ))}
                     </CarouselContent>
-                    <CarouselPrevious className="left-2" />
-                    <CarouselNext className="right-2" />
+                    <CarouselPrevious />
+                    <CarouselNext />
                 </Carousel>
             </section>
 
-            {/* 추천 테스트 */}
-            {user && (
-                <>
-                    <section className="space-y-4 mt-12">
-                        <h2 className="text-xl font-bold text-gray-900">🎯 {user.name}님이 관심 있을 테스트</h2>
-                        <Carousel
-                            opts={{
-                                align: 'start',
-                                loop: true,
-                            }}
-                            className="w-full"
-                        >
-                            <CarouselContent className="-ml-2 md:-ml-4">
-                                {finalRecommendedTests.map((test) => (
-                                    <CarouselItem key={test.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3">
-                                        <CarouselCard
-                                            id={test.id}
-                                            title={test.title}
-                                            description={test.description}
-                                            image={test.image}
-                                            isFavorite={isFavorite(test.id)}
-                                            onToggleFavorite={toggleFavorite}
-                                        />
-                                    </CarouselItem>
-                                ))}
-                            </CarouselContent>
-                            <CarouselPrevious className="left-2" />
-                            <CarouselNext className="right-2" />
-                        </Carousel>
-                    </section>
-                </>
+            {/* 테스트 추천 */}
+            <section className="space-y-4 mt-12">
+                <h2 className="text-xl font-bold text-gray-900">📌 테스트 추천</h2>
+                <Carousel className="w-full">
+                    <CarouselContent className="-ml-2">
+                        {finalRecommendedTests.map((test) => (
+                            <CarouselItem key={test.id} className="pl-2 basis-[280px]">
+                                <CarouselCard
+                                    id={test.id}
+                                    title={test.title}
+                                    description={test.description}
+                                    image={test.image}
+                                    tag={test.tag}
+                                    isFavorite={isFavorite(test.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </Carousel>
+            </section>
+
+            {/* 동적 테스트 섹션 */}
+            {dynamicTestsAsCards.length > 0 && (
+                <section className="space-y-4 mt-12">
+                    <h2 className="text-xl font-bold text-gray-900">🆕 새로운 테스트</h2>
+                    <div className="grid grid-cols-2 gap-2">
+                        {dynamicTestsAsCards.map((test) => (
+                            <HomeCard
+                                key={test.id}
+                                id={test.id}
+                                title={test.title}
+                                image={test.image}
+                                tag={test.tag}
+                                isFavorite={isFavorite(test.id)}
+                                onToggleFavorite={toggleFavorite}
+                            />
+                        ))}
+                    </div>
+                </section>
             )}
 
             {/* 일상 속 밸런스 게임 */}

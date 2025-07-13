@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { CATEGORIES } from '@/constants/tests/categories';
-import { tests } from '@/constants/tests/egen-teto';
 import { Link } from 'react-router-dom';
 import { Heart, Search } from 'lucide-react';
-import { useFavorites } from '@/hooks/use-favorites';
+import { useFavorites } from '@/shared/hooks/use-favorites';
+import { CATEGORIES } from '@/shared/constants/tests/categories';
+import { tests } from '@/shared/constants/tests/egen-teto/test-list';
 
 const PAGE_SIZE = 6;
 
