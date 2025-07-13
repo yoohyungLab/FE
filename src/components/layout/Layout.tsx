@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Header from '@/components/layout/header';
+import Sidebar from '@/components/layout/sidebar';
 import Footer from '@/components/layout/footer';
 import { useAuth } from '@/lib/auth';
 
@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* 모바일 우선: 중앙 정렬, 최대 너비 제한 */}
             <div className="w-full max-w-mobile mx-auto bg-white shadow-2xl">
-                <Header />
+                <Sidebar />
                 <main className="flex-1 p-4 min-h-screen">{children}</main>
                 <Footer />
             </div>

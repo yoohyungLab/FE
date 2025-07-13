@@ -10,9 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
+        autoRefreshToken: true, // 자동 토큰 갱신
+        persistSession: true, // 세션 지속
+        detectSessionInUrl: true, // URL에서 세션 감지
     },
 });
 
@@ -95,3 +95,99 @@ export interface TestResult {
     gender: 'male' | 'female';
     created_at: string;
 }
+
+// 테스트 관련 API
+export const testApi = {
+    // 공개된 모든 테스트 조회
+    async getPublishedTests() {
+        const { data, error } = await supabase
+            .from('tests')
+            .select(
+                `
+                *,
+                questions:questions(
+                    *,
+                    question_options:question_options(*)
+                ),
+                test_results:test_results(*)
+            `
+            )
+            .eq('is_published', true)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // 특정 테스트 조회
+    async getTestBySlug(slug: string) {
+        const { data, error } = await supabase
+            .from('tests')
+            .select(
+                `
+                *,
+                questions:questions(
+                    *,
+                    question_options:question_options(*)
+                ),
+                test_results:test_results(*)
+            `
+            )
+            .eq('slug', slug)
+            .eq('is_published', true)
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 사용자 응답 저장
+    async saveUserResponse(testId: string, sessionId: string, answers: any, resultId?: string, score?: number, metadata?: any) {
+        const { data, error } = await supabase
+            .from('user_responses')
+            .insert([
+                {
+                    test_id: testId,
+                    session_id: sessionId,
+                    answers,
+                    result_id: resultId,
+                    score,
+                    metadata,
+                },
+            ])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 세션별 응답 조회
+    async getUserResponseBySession(sessionId: string, testId: string) {
+        const { data, error } = await supabase
+            .from('user_responses')
+            .select(
+                `
+                *,
+                test_results:result_id(*)
+            `
+            )
+            .eq('session_id', sessionId)
+            .eq('test_id', testId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116는 데이터가 없을 때
+        return data;
+    },
+};
+
+// 섹션 관리 API
+export const sectionApi = {
+    // 섹션별 테스트 조회
+    async getTestsBySection(sectionName: string) {
+        const { data, error } = await supabase.rpc('get_tests_by_section', { section_name: sectionName });
+
+        if (error) throw error;
+        return data || [];
+    },
+};

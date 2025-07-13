@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase } from './supabase';
-import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
@@ -94,12 +93,11 @@ export const useAuth = create<AuthState>((set, get) => ({
     },
 
     signOut: async () => {
-        const navigate = useNavigate();
         try {
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
             set({ user: null });
-            navigate('/');
+            // navigate 제거 - 컴포넌트에서 처리하도록 함
         } catch (error) {
             console.error('Sign out error:', error);
             throw error;

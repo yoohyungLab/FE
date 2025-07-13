@@ -21,10 +21,12 @@ import {
     Heart,
     Flame,
 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-function Header() {
+function Sidebar() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const { user, signIn, signOut } = useAuth();
+    const navigate = useNavigate();
 
     const mainMenus = [
         { icon: Brain, label: '심리 테스트', href: '/tests/psychology' },
@@ -44,7 +46,7 @@ function Header() {
 
     const handleMenuClick = (href: string) => {
         setIsDrawerOpen(false);
-        window.location.href = href;
+        navigate(href);
     };
 
     const handleKakaoLogin = async () => {
@@ -58,6 +60,7 @@ function Header() {
     const handleLogout = async () => {
         try {
             await signOut();
+            navigate('/');
             setIsDrawerOpen(false);
         } catch (error) {
             console.error('Logout failed:', error);
@@ -173,4 +176,4 @@ function Header() {
     );
 }
 
-export default Header;
+export default Sidebar;
