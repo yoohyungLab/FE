@@ -1,6 +1,9 @@
 import { EgenTetoTestPage, TestCallbackPage, TestResultPage } from '@/pages/tests/egen-teto';
 import DynamicTestPage from '@/pages/tests/dynamic-test-page';
 import DynamicResultPage from '@/pages/tests/dynamic-result-page';
+import { LoginPage } from '@/pages/auth/login';
+import { default as RegisterPage } from '@/pages/auth/register';
+import AuthCallbackPage from '@/pages/auth/auth-callback-page';
 
 // 테스트 라우트 설정을 객체로 관리
 export const testRoutes = [
@@ -30,4 +33,20 @@ export const testRoutes = [
     //     path: '/tests/mbti',
     //     element: <MbtiTestPage />
     // }
+];
+
+// 인증 라우트 설정
+export const authRoutes = [
+    {
+        path: '/auth/login',
+        element: <LoginPage />,
+    },
+    {
+        path: '/auth/register',
+        element: <RegisterPage />,
+    },
+    {
+        path: '/auth/callback',
+        element: <AuthCallbackPage />,
+    },
 ];

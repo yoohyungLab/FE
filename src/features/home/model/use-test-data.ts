@@ -1,21 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/shared/ui/carousel';
-import { HomeCard } from '@/shared/ui/card';
-import { useAuth } from '@/shared/lib/auth';
-import { useFavorites } from '@/shared/hooks/use-favorites';
 import { testApi, sectionApi } from '@/shared/lib/supabase';
-import { CarouselCard } from '@/shared/ui/carousel-card';
-import { balanceGames, tests, topTestsByType } from '@/shared/constants/tests/egen-teto/test-list';
-import {
-    BalanceGameSection,
-    CategoryFilter,
-    DynamicTestsSection,
-    MainBanner,
-    RecommendedSection,
-    TopTestsSection,
-    TrendingSection,
-} from '@/features/home';
+import { tests, balanceGames, topTestsByType } from '@/shared/constants/tests/egen-teto';
 
 interface DynamicTest {
     id: string;
@@ -43,9 +28,7 @@ interface SectionTest {
     is_featured: boolean;
 }
 
-export default function HomePage() {
-    const { user } = useAuth();
-    const { toggleFavorite, isFavorite } = useFavorites();
+export function useTestData() {
     const [dynamicTests, setDynamicTests] = useState<DynamicTest[]>([]);
     const [sectionTests, setSectionTests] = useState<{
         trending: SectionTest[];
@@ -149,39 +132,12 @@ export default function HomePage() {
                   tag: test.tag || '테스트',
               }));
 
-    if (loading) {
-        return (
-            <main className="space-y-5 px-4 pt-10 pb-24 max-w-4xl mx-auto">
-                <div className="text-center py-20">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">테스트를 불러오는 중...</p>
-                </div>
-            </main>
-        );
-    }
-
-    return (
-        <main className="space-y-5 px-4 pt-10 pb-24 max-w-4xl mx-auto">
-            {/* 메인 배너 영역 */}
-            <MainBanner />
-
-            {/* 요즘 뜨는 테스트 */}
-            <TrendingSection tests={finalTrendingTests} />
-
-            {/* 테스트 추천 */}
-            <RecommendedSection tests={finalRecommendedTests} />
-
-            {/* 동적 테스트 섹션 */}
-            {dynamicTestsAsCards.length > 0 && <DynamicTestsSection tests={dynamicTestsAsCards} />}
-
-            {/* 일상 속 밸런스 게임 */}
-            <BalanceGameSection tests={finalBalanceGameTests} />
-
-            {/* 유형별 TOP 테스트 */}
-            <TopTestsSection tests={finalTopByTypeTests} />
-
-            {/* 카테고리별 탐색 */}
-            <CategoryFilter />
-        </main>
-    );
-}
+    return {
+        loading,
+        dynamicTestsAsCards,
+        finalTrendingTests,
+        finalRecommendedTests,
+        finalBalanceGameTests,
+        finalTopByTypeTests,
+    };
+} 

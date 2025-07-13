@@ -5,3 +5,4 @@ export * from './carousel';
 export * from './drawer';
 export * from './gender-selection';
 export * from './ad-sense';
+export * from './input';

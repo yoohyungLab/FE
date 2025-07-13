@@ -9,6 +9,8 @@ import FavoritesPage from '@/pages/favorites/favorites-page';
 import { testRoutes } from './routing/test-routes';
 import Layout from '@/widgets/layout';
 import './styles/index.css';
+import { LoginPage } from '@/pages/auth/login';
+import RegisterPage from '@/pages/auth/register';
 
 function App() {
     const { checkAuth } = useAuth();
@@ -23,6 +25,8 @@ function App() {
             <Layout>
                 <Routes>
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/auth/login" element={<LoginPage />} />
+                    <Route path="/auth/register" element={<RegisterPage />} />
                     <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
                     {/* 테스트 라우트들을 동적으로 생성 */}

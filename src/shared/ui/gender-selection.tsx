@@ -1,5 +1,5 @@
-import { Gender } from '@/types/result';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/ui';
+import { Gender } from '@/shared/types';
 
 interface GenderSelectionProps {
     onSelect: (gender: Gender) => void;
