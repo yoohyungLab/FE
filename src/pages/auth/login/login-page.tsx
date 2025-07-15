@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase, signInWithKakao } from '../../../shared/lib/supabase';
+import { useAuth } from '../../../shared/lib/auth';
 
 interface LoginFormData {
     email: string;
@@ -10,6 +11,7 @@ interface LoginFormData {
 
 export default function LoginPage() {
     const navigate = useNavigate();
+    const { signIn } = useAuth();
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: '',
@@ -62,47 +64,30 @@ export default function LoginPage() {
             setIsLoading(true);
             setError(null);
 
-            const { data, error } = await supabase.auth.signInWithPassword({
+            console.log('이메일 로그인 시도:', formData.email);
+
+            // auth 스토어의 signIn 함수 사용
+            await signIn('email', {
                 email: formData.email,
                 password: formData.password,
             });
 
-            if (error) {
-                // 개발 환경에서 이메일 인증 에러 무시
-                if (error.code === 'email_not_confirmed') {
-                    console.log('이메일 인증 에러 무시 (개발 환경)');
+            console.log('로그인 성공, 메인으로 이동');
+            // 로그인 성공 - 메인 페이지로 이동
+            navigate('/');
+        } catch (error: any) {
+            console.error('로그인 에러:', error);
 
-                    // 강제로 이메일 인증 상태로 변경 시도
-                    try {
-                        // 현재 사용자 정보 가져오기
-                        const { data: userData } = await supabase.auth.getUser();
-                        if (userData.user) {
-                            console.log('사용자 발견, 로그인 진행');
-                            navigate('/');
-                            return;
-                        }
-                    } catch (userError) {
-                        console.error('사용자 정보 가져오기 실패:', userError);
-                    }
-
-                    setError('이메일 인증이 필요합니다. 개발 환경에서는 Supabase 대시보드에서 이메일 인증을 비활성화해주세요.');
-                    return;
-                }
-
-                if (error.message.includes('Invalid')) {
-                    setError('이메일 또는 비밀번호가 일치하지 않습니다.');
-                } else {
-                    setError('로그인에 실패했습니다. 다시 시도해주세요.');
-                }
-                return;
+            // 에러 메시지 처리
+            if (error.message.includes('탈퇴한 계정')) {
+                setError(error.message);
+            } else if (error.message.includes('Email not confirmed') || error.code === 'email_not_confirmed') {
+                setError('이메일 인증이 필요합니다. 개발 환경에서는 Supabase 대시보드에서 이메일 인증을 비활성화해주세요.');
+            } else if (error.message.includes('Invalid')) {
+                setError('이메일 또는 비밀번호가 일치하지 않습니다.');
+            } else {
+                setError('로그인에 실패했습니다. 다시 시도해주세요.');
             }
-
-            if (data.user) {
-                // 로그인 성공
-                navigate('/');
-            }
-        } catch (error) {
-            setError('로그인에 실패했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);
         }

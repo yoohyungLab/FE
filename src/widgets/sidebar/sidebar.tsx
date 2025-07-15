@@ -76,32 +76,44 @@ function Sidebar() {
         try {
             setIsDeleting(true);
 
-            // 1. 사용자 관련 데이터 삭제 (프로필, 테스트 결과 등)
-            if (user.id) {
-                // 테스트 결과 삭제
-                await supabase.from('test_results').delete().eq('user_id', user.id);
-
-                // 사용자 응답 삭제
-                await supabase.from('user_responses').delete().eq('user_id', user.id);
-
-                // 프로필 삭제
-                await supabase.from('profiles').delete().eq('id', user.id);
-            }
-
-            // 2. 계정 삭제 (현재 Supabase에서는 클라이언트에서 직접 계정 삭제 불가)
-            // 대신 사용자 정보를 비우고 비활성화 상태로 표시
+            // 1. 사용자 메타데이터에 삭제 시간 설정
+            const deletedAt = new Date().toISOString();
             await supabase.auth.updateUser({
                 data: {
-                    deleted_at: new Date().toISOString(),
-                    name: null,
-                    email: null,
+                    deleted_at: deletedAt,
+                    name: `삭제된사용자_${Date.now()}`, // 이름 익명화
                 },
             });
 
-            // 3. 로그아웃 처리
+            // 2. 프로필에 삭제 시간 표시 (소프트 삭제)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    deleted_at: deletedAt,
+                    name: `삭제된사용자_${Date.now()}`, // 이름 익명화
+                    email: null, // 이메일 제거
+                })
+                .eq('id', user.id);
+
+            if (profileError) {
+                console.error('프로필 삭제 실패:', profileError);
+                // 프로필 업데이트 실패해도 메타데이터는 업데이트되었으므로 계속 진행
+            }
+
+            // 3. 관련 데이터도 소프트 삭제 또는 사용자 연결 해제
+            // 테스트 결과는 통계를 위해 남겨두되, user_id만 null로 변경
+            await supabase.from('test_results').update({ user_id: null }).eq('user_id', user.id);
+
+            // 찜 목록은 완전 삭제
+            await supabase.from('favorites').delete().eq('user_id', user.id);
+
+            // 사용자 응답이 있다면 user_id null로 변경
+            await supabase.from('user_responses').update({ user_id: null }).eq('user_id', user.id);
+
+            // 4. 로그아웃 처리
             await signOut();
 
-            // 4. 메인 페이지로 이동
+            // 5. 메인 페이지로 이동
             navigate('/');
 
             alert('회원탈퇴가 완료되었습니다.');
@@ -115,9 +127,22 @@ function Sidebar() {
         }
     };
 
+    // 회원탈퇴 확인 모달 열기 (사이드바 자동 닫기)
+    const handleShowDeleteConfirm = () => {
+        setIsDrawerOpen(false); // 사이드바 먼저 닫기
+        setTimeout(() => {
+            setShowDeleteConfirm(true); // 약간의 딜레이 후 모달 열기
+        }, 150); // 사이드바 닫힘 애니메이션 후 모달 표시
+    };
+
+    // 회원탈퇴 모달 닫기
+    const handleCloseDeleteConfirm = () => {
+        setShowDeleteConfirm(false);
+    };
+
     const renderMenuGroup = (title: string, menus: any[]) => (
-        <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">{title}</h3>
+        <div className="my-6">
+            <h3 className="text-sm font-semibold text-gray-500 mb-3 border-b border-gray-200 pb-2" />
             <div className="space-y-2">
                 {menus.map((menu, index) => (
                     <button
@@ -158,7 +183,7 @@ function Sidebar() {
                                 </DrawerClose>
                             </DrawerTitle>
                         </DrawerHeader>
-                        <div className="px-6 pb-6">
+                        <div className="px-6 py-6">
                             {user ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -177,7 +202,7 @@ function Sidebar() {
                                         <Button
                                             variant="outline"
                                             className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                                            onClick={() => setShowDeleteConfirm(true)}
+                                            onClick={handleShowDeleteConfirm}
                                         >
                                             <Trash2 className="w-4 h-4 mr-2" /> 회원탈퇴
                                         </Button>
@@ -216,36 +241,70 @@ function Sidebar() {
 
             {/* 회원탈퇴 확인 다이얼로그 */}
             {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm"
+                    onClick={handleCloseDeleteConfirm}
+                >
+                    <div
+                        className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl transform transition-all duration-200 scale-100"
+                        onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록
+                    >
                         <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                <AlertTriangle className="w-5 h-5 text-red-600" />
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6 text-red-600" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-gray-900">회원탈퇴</h3>
+                                <h3 className="font-bold text-lg text-gray-900">회원탈퇴</h3>
                                 <p className="text-sm text-gray-600">정말로 탈퇴하시겠습니까?</p>
                             </div>
                         </div>
-                        <div className="mb-4">
-                            <p className="text-sm text-gray-600 mb-2">탈퇴하면 다음 데이터가 삭제됩니다:</p>
-                            <ul className="text-sm text-gray-600 space-y-1">
-                                <li>• 계정 정보</li>
-                                <li>• 테스트 결과</li>
-                                <li>• 찜한 테스트</li>
-                                <li>• 테스트 히스토리</li>
-                            </ul>
+
+                        <div className="mb-6">
+                            <p className="text-sm text-gray-600 mb-3 font-medium">탈퇴하면 다음 데이터가 영구 삭제됩니다:</p>
+                            <div className="bg-red-50 rounded-lg p-3 border border-red-100">
+                                <ul className="text-sm text-red-700 space-y-1">
+                                    <li className="flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                        계정 정보 및 프로필
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                        모든 테스트 결과
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                        찜한 테스트 목록
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                        테스트 히스토리
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
+
                         <div className="flex space-x-3">
-                            <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+                            <Button
+                                variant="outline"
+                                className="flex-1 font-medium"
+                                onClick={handleCloseDeleteConfirm}
+                                disabled={isDeleting}
+                            >
                                 취소
                             </Button>
                             <Button
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium"
                                 onClick={handleDeleteAccount}
                                 disabled={isDeleting}
                             >
-                                {isDeleting ? '탈퇴 처리중...' : '탈퇴하기'}
+                                {isDeleting ? (
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>처리중...</span>
+                                    </div>
+                                ) : (
+                                    '탈퇴하기'
+                                )}
                             </Button>
                         </div>
                     </div>

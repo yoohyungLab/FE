@@ -187,6 +187,51 @@ export default function RegisterPage() {
                         });
 
                         if (signInData?.user && !signInError) {
+                            // 사용자 메타데이터에서 deleted_at 체크
+                            const userDeletedAt = signInData.user.user_metadata?.deleted_at;
+
+                            if (userDeletedAt) {
+                                await supabase.auth.signOut();
+                                setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
+                                return;
+                            }
+
+                            // 프로필 체크
+                            const { data: profile, error: profileError } = await supabase
+                                .from('profiles')
+                                .select('*')
+                                .eq('id', signInData.user.id)
+                                .single();
+
+                            // 프로필이 존재하고 deleted_at이 설정된 경우만 로그인 거부
+                            if (profile && profile.deleted_at) {
+                                await supabase.auth.signOut();
+                                setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
+                                return;
+                            }
+
+                            // 프로필이 없는 경우 생성 시도 (신규 가입자)
+                            if (profileError || !profile) {
+                                console.log('신규 가입자 프로필 생성 시도');
+                                const { error: createError } = await supabase.from('profiles').upsert({
+                                    id: signInData.user.id,
+                                    email: signInData.user.email,
+                                    name:
+                                        signInData.user.user_metadata?.name ||
+                                        signInData.user.user_metadata?.full_name ||
+                                        signInData.user.email?.split('@')[0] ||
+                                        '사용자',
+                                    avatar_url: signInData.user.user_metadata?.avatar_url || signInData.user.user_metadata?.picture,
+                                    provider: (signInData.user.app_metadata?.provider as 'kakao' | 'google' | 'email') || 'email',
+                                    created_at: new Date().toISOString(),
+                                });
+
+                                if (createError) {
+                                    console.error('프로필 생성 실패:', createError);
+                                    // 프로필 생성 실패해도 계속 진행
+                                }
+                            }
+
                             console.log('자동 로그인 성공');
                             await checkAuth();
                             setTimeout(() => {
