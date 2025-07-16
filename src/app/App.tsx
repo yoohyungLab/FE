@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from '@/pages/home/home-page';
 import AuthCallbackPage from '@/pages/auth/auth-callback-page';
 import FavoritesPage from '@/pages/favorites/favorites-page';
-import { testRoutes } from './routing/test-routes';
+import { testRoutes, feedbackRoutes } from './routing/test-routes';
 import Layout from '@/widgets/layout';
 import './styles/index.css';
 import { LoginPage } from '@/pages/auth/login';
@@ -31,6 +31,11 @@ function App() {
 
                     {/* 테스트 라우트들을 동적으로 생성 */}
                     {testRoutes.map(({ path, element }) => (
+                        <Route key={path} path={path} element={element} />
+                    ))}
+
+                    {/* 피드백 라우트들을 동적으로 생성 */}
+                    {feedbackRoutes.map(({ path, element }) => (
                         <Route key={path} path={path} element={element} />
                     ))}
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Check, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase, signInWithKakao } from '../../../shared/lib/supabase';
 import { useAuth } from '../../../shared/lib/auth';
 
@@ -28,7 +28,6 @@ export default function RegisterPage() {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [focusedField, setFocusedField] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -93,31 +92,23 @@ export default function RegisterPage() {
             setIsLoading(true);
             setError(null);
 
-            // 이메일 유효성 검사
+            // 기본 유효성 검사
             if (!validateEmail(formData.email)) {
                 setError('유효한 이메일 주소를 입력해주세요.');
                 return;
             }
 
-            // 테스트 도메인 경고
             if (isTestEmail(formData.email)) {
                 setError('실제 이메일 주소를 사용해주세요. (gmail.com, naver.com 등)');
                 return;
             }
 
-            // 비밀번호 확인
             if (formData.password !== formData.confirmPassword) {
                 setError('비밀번호가 일치하지 않습니다.');
                 return;
             }
 
-            console.log('회원가입 시도:', {
-                email: formData.email,
-                name: formData.name,
-                passwordLength: formData.password.length,
-            });
-
-            // Supabase 회원가입
+            // 회원가입 시도
             const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -130,11 +121,7 @@ export default function RegisterPage() {
                 },
             });
 
-            console.log('회원가입 응답:', { data, error });
-
             if (error) {
-                console.error('회원가입 에러:', error);
-
                 // 에러 메시지 한국어화
                 let errorMessage = '회원가입에 실패했습니다.';
 
@@ -159,27 +146,16 @@ export default function RegisterPage() {
             }
 
             if (data?.user) {
-                console.log('회원가입 성공:', {
-                    id: data.user.id,
-                    email: data.user.email,
-                    confirmed: !!data.user.email_confirmed_at,
-                    session: !!data.session,
-                });
-
-                // 회원가입 성공 메시지 표시
                 setSuccessMessage('회원가입이 완료되었습니다! 메인으로 이동합니다...');
 
-                // 이메일 인증이 완료되었거나 세션이 있는 경우 바로 로그인 처리
+                // 회원가입 후 자동 로그인 시도
                 if (data.user.email_confirmed_at || data.session) {
-                    // 인증 상태 업데이트
                     await checkAuth();
-
-                    // 1초 후 메인으로 이동
                     setTimeout(() => {
                         navigate('/', { replace: true });
                     }, 1000);
                 } else {
-                    // 이메일 인증이 필요한 경우 - 자동 로그인 시도
+                    // 자동 로그인 시도
                     try {
                         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                             email: formData.email,
@@ -187,33 +163,24 @@ export default function RegisterPage() {
                         });
 
                         if (signInData?.user && !signInError) {
-                            // 사용자 메타데이터에서 deleted_at 체크
-                            const userDeletedAt = signInData.user.user_metadata?.deleted_at;
-
-                            if (userDeletedAt) {
+                            // 삭제된 사용자 체크
+                            if (signInData.user.user_metadata?.deleted_at) {
                                 await supabase.auth.signOut();
                                 setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
                                 return;
                             }
 
-                            // 프로필 체크
-                            const { data: profile, error: profileError } = await supabase
-                                .from('profiles')
-                                .select('*')
-                                .eq('id', signInData.user.id)
-                                .single();
+                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', signInData.user.id).single();
 
-                            // 프로필이 존재하고 deleted_at이 설정된 경우만 로그인 거부
-                            if (profile && profile.deleted_at) {
+                            if (profile?.deleted_at) {
                                 await supabase.auth.signOut();
                                 setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
                                 return;
                             }
 
-                            // 프로필이 없는 경우 생성 시도 (신규 가입자)
-                            if (profileError || !profile) {
-                                console.log('신규 가입자 프로필 생성 시도');
-                                const { error: createError } = await supabase.from('profiles').upsert({
+                            // 프로필이 없으면 생성
+                            if (!profile) {
+                                await supabase.from('profiles').upsert({
                                     id: signInData.user.id,
                                     email: signInData.user.email,
                                     name:
@@ -225,14 +192,8 @@ export default function RegisterPage() {
                                     provider: (signInData.user.app_metadata?.provider as 'kakao' | 'google' | 'email') || 'email',
                                     created_at: new Date().toISOString(),
                                 });
-
-                                if (createError) {
-                                    console.error('프로필 생성 실패:', createError);
-                                    // 프로필 생성 실패해도 계속 진행
-                                }
                             }
 
-                            console.log('자동 로그인 성공');
                             await checkAuth();
                             setTimeout(() => {
                                 navigate('/', { replace: true });
@@ -245,7 +206,6 @@ export default function RegisterPage() {
                             }, 2000);
                         }
                     } catch (signInError) {
-                        console.error('자동 로그인 실패:', signInError);
                         setSuccessMessage('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다...');
                         setTimeout(() => {
                             navigate('/auth/login', { replace: true });
@@ -254,7 +214,6 @@ export default function RegisterPage() {
                 }
             }
         } catch (error) {
-            console.error('회원가입 예외:', error);
             setError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);
@@ -293,7 +252,7 @@ export default function RegisterPage() {
                     </div>
                 )}
 
-                {/* Kakao Login - 강조 */}
+                {/* Kakao Login */}
                 <div className="mb-6">
                     <button
                         onClick={handleKakaoSignIn}
@@ -323,46 +282,33 @@ export default function RegisterPage() {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Name Input */}
-                    <div>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
-                            onFocus={() => setFocusedField('name')}
-                            onBlur={() => setFocusedField('')}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                            placeholder="이름"
-                            required
-                        />
-                    </div>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                        placeholder="이름"
+                        required
+                    />
 
-                    {/* Email Input */}
-                    <div>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
-                            onFocus={() => setFocusedField('email')}
-                            onBlur={() => setFocusedField('')}
-                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                                formData.email && !isEmailValid ? 'border-red-300' : 'border-gray-300'
-                            }`}
-                            placeholder="이메일"
-                            required
-                        />
-                        {formData.email && !isEmailValid && <p className="mt-1 text-sm text-red-600">올바른 이메일 형식을 입력해주세요</p>}
-                    </div>
+                    <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                            formData.email && !isEmailValid ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="이메일"
+                        required
+                    />
+                    {formData.email && !isEmailValid && <p className="mt-1 text-sm text-red-600">올바른 이메일 형식을 입력해주세요</p>}
 
-                    {/* Password Input */}
                     <div>
                         <div className="relative">
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 value={formData.password}
                                 onChange={(e) => handleInputChange('password', e.target.value)}
-                                onFocus={() => setFocusedField('password')}
-                                onBlur={() => setFocusedField('')}
                                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                                 placeholder="비밀번호 (5자 이상)"
                                 required
@@ -377,7 +323,6 @@ export default function RegisterPage() {
                             </button>
                         </div>
 
-                        {/* Password Strength */}
                         {formData.password && (
                             <div className="mt-1 flex items-center space-x-2">
                                 <div className="flex-1 bg-gray-200 rounded-full h-1">
@@ -391,15 +336,12 @@ export default function RegisterPage() {
                         )}
                     </div>
 
-                    {/* Confirm Password */}
                     <div>
                         <div className="relative">
                             <input
                                 type={showConfirmPassword ? 'text' : 'password'}
                                 value={formData.confirmPassword}
                                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                                onFocus={() => setFocusedField('confirmPassword')}
-                                onBlur={() => setFocusedField('')}
                                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                                 placeholder="비밀번호 확인"
                                 required
@@ -412,7 +354,6 @@ export default function RegisterPage() {
                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
 
-                            {/* Password Match Indicator */}
                             {formData.confirmPassword && (
                                 <div className="absolute -right-8 top-1/2 transform -translate-y-1/2">
                                     {passwordsMatch ? <Check className="w-5 h-5 text-green-500" /> : <X className="w-5 h-5 text-red-500" />}
@@ -421,7 +362,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={!isFormValid || isLoading}
@@ -440,7 +380,6 @@ export default function RegisterPage() {
                     </button>
                 </form>
 
-                {/* Login Link */}
                 <div className="text-center mt-6">
                     <p className="text-sm text-gray-600">
                         이미 계정이 있으신가요?{' '}

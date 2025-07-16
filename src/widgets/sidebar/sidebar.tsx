@@ -220,7 +220,7 @@ function Sidebar() {
                                         </div>
                                     </Button>
                                     <div className="text-center">
-                                        <span className="text-sm text-gray-500">간편하게 1초만에 시작하세요</span>
+                                        <span className="text-sm text-gray-500">간편하게 3초만에 시작하세요</span>
                                     </div>
                                     <Button variant="outline" className="w-full" onClick={() => handleMenuClick('/auth/login')}>
                                         <LogIn className="w-4 h-4 mr-2" /> 로그인

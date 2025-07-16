@@ -9,13 +9,9 @@ const AuthCallbackPage: React.FC = () => {
     useEffect(() => {
         const handleAuthCallback = async () => {
             try {
-                // 인증 상태 확인
                 await checkAuth();
-
-                // 홈페이지로 리다이렉트
                 navigate('/', { replace: true });
             } catch (error) {
-                console.error('Auth callback error:', error);
                 navigate('/', { replace: true });
             }
         };

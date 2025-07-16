@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
-import { supabase, signInWithKakao } from '../../../shared/lib/supabase';
+import { signInWithKakao } from '../../../shared/lib/supabase';
 import { useAuth } from '../../../shared/lib/auth';
 
 interface LoginFormData {
@@ -17,10 +17,8 @@ export default function LoginPage() {
         password: '',
     });
     const [showPassword, setShowPassword] = useState(false);
-    const [focusedField, setFocusedField] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [rememberMe, setRememberMe] = useState(false);
 
     const handleInputChange = (field: keyof LoginFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -64,21 +62,13 @@ export default function LoginPage() {
             setIsLoading(true);
             setError(null);
 
-            console.log('이메일 로그인 시도:', formData.email);
-
-            // auth 스토어의 signIn 함수 사용
             await signIn('email', {
                 email: formData.email,
                 password: formData.password,
             });
 
-            console.log('로그인 성공, 메인으로 이동');
-            // 로그인 성공 - 메인 페이지로 이동
             navigate('/');
         } catch (error: any) {
-            console.error('로그인 에러:', error);
-
-            // 에러 메시지 처리
             if (error.message.includes('탈퇴한 계정')) {
                 setError(error.message);
             } else if (error.message.includes('Email not confirmed') || error.code === 'email_not_confirmed') {
@@ -105,7 +95,7 @@ export default function LoginPage() {
                         <img src="/icons/logo.svg" alt="유형연구소" className="w-12 h-12 mx-auto" />
                     </Link>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">로그인</h1>
-                    <p className="text-gray-600">계정에 로그인하세요</p>
+                    <p className="text-gray-600">3초만에 시작하세요</p>
                 </div>
 
                 {/* Error Message */}
@@ -116,7 +106,7 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                {/* Kakao Login - 강조 */}
+                {/* Kakao Login */}
                 <div className="mb-6">
                     <button
                         onClick={handleKakaoSignIn}
@@ -128,7 +118,7 @@ export default function LoginPage() {
                         ) : (
                             <>
                                 <img src="/icons/kakao.svg" alt="카카오" className="w-5 h-5" />
-                                <span>카카오로 빠르게 로그인</span>
+                                <span>카카오로 3초만에 시작하기</span>
                             </>
                         )}
                     </button>
@@ -147,59 +137,34 @@ export default function LoginPage() {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Email Input */}
-                    <div>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
-                            onFocus={() => setFocusedField('email')}
-                            onBlur={() => setFocusedField('')}
-                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                                formData.email && !isEmailValid ? 'border-red-300' : 'border-gray-300'
-                            }`}
-                            placeholder="이메일"
-                            required
-                        />
-                        {formData.email && !isEmailValid && <p className="mt-1 text-sm text-red-600">올바른 이메일 형식을 입력해주세요</p>}
-                    </div>
+                    <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                            formData.email && !isEmailValid ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="이메일"
+                        required
+                    />
 
                     {/* Password Input */}
-                    <div>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={formData.password}
-                                onChange={(e) => handleInputChange('password', e.target.value)}
-                                onFocus={() => setFocusedField('password')}
-                                onBlur={() => setFocusedField('')}
-                                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                                placeholder="비밀번호"
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Remember Me & Forgot Password */}
-                    <div className="flex items-center justify-between text-sm">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-4 h-4 text-pink-500 border-gray-300 rounded focus:ring-pink-500"
-                            />
-                            <span className="text-gray-700">로그인 유지</span>
-                        </label>
-                        <Link to="/auth/forgot-password" className="text-pink-500 hover:text-pink-600">
-                            비밀번호 찾기
-                        </Link>
+                    <div className="relative">
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={formData.password}
+                            onChange={(e) => handleInputChange('password', e.target.value)}
+                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                            placeholder="비밀번호"
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
                     </div>
 
                     {/* Submit Button */}
@@ -221,7 +186,7 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Sign Up Link */}
+                {/* Register Link */}
                 <div className="text-center mt-6">
                     <p className="text-sm text-gray-600">
                         아직 계정이 없으신가요?{' '}
