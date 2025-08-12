@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { useTestResult, ResultHeader, ResultDetails } from '@/features/test-results';
 import { ResultActions } from '@/features/test-sharing';
-import { resultBgImages } from '@/shared/constants/tests/egen-teto/result-bg-images';
+import { EGEN_TETO_RESULT_BG_IMAGES } from '@/shared/constants';
 
 const TestResultPage: React.FC = () => {
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ const TestResultPage: React.FC = () => {
         );
     }
 
-    const bgImage = resultBgImages[resultType!];
+    const bgImage = EGEN_TETO_RESULT_BG_IMAGES[resultType!];
 
     return (
         <div className="min-h-screen font-sans bg-gradient-to-b from-sky-50 via-white to-blue-100">

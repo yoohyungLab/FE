@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useFavorites } from '@/shared/hooks/use-favorites';
-import { tests } from '@/shared/constants/tests/egen-teto';
+import { MAIN_TESTS } from '@/shared/constants';
 
 export function useFavoritesFilter() {
     const { favoriteIds, toggleFavorite, loading } = useFavorites();
     const [selectedCategory, setSelectedCategory] = useState<'전체' | number>('전체');
 
-    const allFavorites = tests.filter((test) => favoriteIds.includes(test.id));
+    const allFavorites = MAIN_TESTS.filter((test) => favoriteIds.includes(test.id));
     const filteredTests = selectedCategory === '전체' ? allFavorites : allFavorites.filter((t) => t.category === selectedCategory);
 
     useEffect(() => {
@@ -27,4 +27,4 @@ export function useFavoritesFilter() {
         setSelectedCategory,
         favoriteCategories,
     };
-} 
+}

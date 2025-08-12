@@ -1,5 +1,5 @@
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/shared/ui/carousel';
-import { CarouselCard } from '@/shared/ui/carousel-card';
+import { CarouselCard } from '@/shared/ui/cards/carousel-card';
 import { useFavorites } from '@/shared/hooks/use-favorites';
 
 interface RecommendedSectionProps {

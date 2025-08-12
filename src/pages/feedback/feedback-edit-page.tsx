@@ -1,25 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Send, Plus } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Upload, Send, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/shared/lib/auth';
-import { feedbackApi, spamPreventionApi, categoryApi } from '@/shared/api';
-import { CONTENT_LIMITS } from '@/shared/constants';
+import { feedbackApi } from '@/shared/api';
+import { FEEDBACK_CATEGORIES, CONTENT_LIMITS } from '@/shared/constants';
 import type { FeedbackCategory } from '@/shared/types';
-
-interface Category {
-    id: number;
-    name: string;
-    display_name: string;
-    description?: string;
-    sort_order: number;
-    is_active: boolean;
-}
 
 interface FeedbackFormData {
     title: string;
     content: string;
-    category: string;
-    visibility: 'private' | 'public' | 'anonymous';
+    category: FeedbackCategory;
     attached_file: File | null;
 }
 
@@ -29,40 +19,60 @@ interface ValidationErrors {
     attached_file?: string;
 }
 
-export default function FeedbackNewPage() {
+export default function FeedbackEditPage() {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [categories, setCategories] = useState<Category[]>([]);
     const [formData, setFormData] = useState<FeedbackFormData>({
         title: '',
         content: '',
-        category: '',
-        visibility: 'private',
+        category: 'feature',
         attached_file: null,
     });
+    const [originalFeedback, setOriginalFeedback] = useState<any>(null);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [characterCount, setCharacterCount] = useState({ title: 0, content: 0 });
     const [loading, setLoading] = useState(true);
+    const [characterCount, setCharacterCount] = useState({ title: 0, content: 0 });
 
     useEffect(() => {
         if (!user) {
             navigate('/auth/login');
             return;
         }
-        loadCategories();
-    }, [user, navigate]);
+        if (id) {
+            loadFeedback();
+        }
+    }, [id, user, navigate]);
 
-    const loadCategories = async () => {
+    const loadFeedback = async () => {
         try {
-            const data = await categoryApi.getAllCategories();
-            setCategories(data);
-            if (data.length > 0) {
-                setFormData((prev) => ({ ...prev, category: data[0].name }));
+            setLoading(true);
+            const { data, error } = await feedbackApi.getFeedback(id!, user?.id);
+
+            if (error) {
+                throw error;
             }
-        } catch (error) {
-            console.error('카테고리 로드 실패:', error);
+
+            // 본인의 피드백만 수정할 수 있도록 체크
+            if (data && data.author_id !== user?.id) {
+                navigate('/feedback');
+                return;
+            }
+
+            setOriginalFeedback(data);
+            setFormData({
+                title: data.title,
+                content: data.content,
+                category: data.category,
+                attached_file: null,
+            });
+            setCharacterCount({
+                title: data.title.length,
+                content: data.content.length,
+            });
+        } catch (err: any) {
+            navigate('/feedback');
         } finally {
             setLoading(false);
         }
@@ -78,7 +88,7 @@ export default function FeedbackNewPage() {
             setCharacterCount((prev) => ({ ...prev, content: (value as string).length }));
         }
 
-        // 에러 메시지 제거 (타입 안전하게)
+        // 에러 메시지 제거
         if (field in validationErrors) {
             setValidationErrors((prev) => ({ ...prev, [field]: undefined }));
         }
@@ -97,10 +107,6 @@ export default function FeedbackNewPage() {
             errors.content = '내용을 입력해주세요.';
         } else if (formData.content.length > CONTENT_LIMITS.CONTENT_MAX) {
             errors.content = `내용은 ${CONTENT_LIMITS.CONTENT_MAX}자 이내로 입력해주세요.`;
-        }
-
-        if (!formData.category) {
-            errors.title = '카테고리를 선택해주세요.';
         }
 
         // 파일 크기 체크
@@ -125,35 +131,19 @@ export default function FeedbackNewPage() {
         try {
             setIsSubmitting(true);
 
-            // 스팸 방지 체크 (간단한 제한 체크)
-            const limitCheck = await spamPreventionApi.checkWriteLimit(user!.id);
-            if (!limitCheck.allowed) {
-                throw new Error(limitCheck.reason || '작성 제한에 도달했습니다.');
-            }
-
-            // 피드백 제출
-            const { error } = await feedbackApi.createFeedback({
+            // 피드백 수정
+            const { error } = await feedbackApi.updateFeedback(id!, user!.id, {
                 ...formData,
-                category: formData.category as FeedbackCategory,
                 author_id: user!.id,
                 author_name: user!.name || '익명',
             });
 
             if (error) throw error;
 
-            setSubmitSuccess(true);
-            // 폼 초기화
-            setFormData({
-                title: '',
-                content: '',
-                category: categories.length > 0 ? categories[0].name : '',
-                visibility: 'private',
-                attached_file: null,
-            });
-            setCharacterCount({ title: 0, content: 0 });
-            setValidationErrors({});
+            // 성공 시 상세 페이지로 이동
+            navigate(`/feedback/${id}`);
         } catch (err: any) {
-            setValidationErrors({ title: err.message || '제출에 실패했습니다.' });
+            setValidationErrors({ title: err.message || '수정에 실패했습니다.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -164,48 +154,37 @@ export default function FeedbackNewPage() {
         handleInputChange('attached_file', file);
     };
 
+    if (!user) {
+        return null;
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 text-lg">카테고리를 불러오는 중...</p>
+                    <p className="text-gray-600 text-lg">건의사항을 불러오는 중...</p>
                 </div>
             </div>
         );
     }
 
-    if (submitSuccess) {
+    if (!originalFeedback) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50">
-                <div className="max-w-2xl mx-auto px-4 py-16">
-                    <div className="text-center bg-white rounded-2xl shadow-lg p-8 border border-pink-100">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <span className="text-3xl">✅</span>
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">건의사항이 성공적으로 제출되었습니다!</h1>
-                        <p className="text-gray-600 mb-8 leading-relaxed">
-                            소중한 의견을 보내주셔서 감사합니다.
-                            <br />
-                            검토 후 빠른 시일 내에 답변드리도록 하겠습니다.
-                        </p>
-
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <button
-                                onClick={() => setSubmitSuccess(false)}
-                                className="inline-flex items-center justify-center px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
-                            >
-                                <Plus className="w-5 h-5 mr-2" />
-                                추가 건의사항 작성
-                            </button>
-                            <Link
-                                to="/feedback"
-                                className="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-medium"
-                            >
-                                목록으로 돌아가기
-                            </Link>
-                        </div>
+            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50 flex items-center justify-center">
+                <div className="text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100 max-w-md mx-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl text-gray-600">❓</span>
                     </div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">건의사항을 찾을 수 없습니다</h2>
+                    <p className="text-gray-600 mb-6">요청하신 건의사항이 존재하지 않거나 삭제되었습니다.</p>
+                    <Link
+                        to="/feedback"
+                        className="inline-flex items-center space-x-2 px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-medium"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>목록으로 돌아가기</span>
+                    </Link>
                 </div>
             </div>
         );
@@ -216,12 +195,15 @@ export default function FeedbackNewPage() {
             <div className="max-w-3xl mx-auto px-4 py-8">
                 {/* 헤더 */}
                 <div className="text-center mb-8">
-                    <Link to="/feedback" className="inline-flex items-center text-pink-600 hover:text-pink-700 mb-4 transition-colors">
+                    <Link
+                        to={`/feedback/${id}`}
+                        className="inline-flex items-center text-pink-600 hover:text-pink-700 mb-4 transition-colors"
+                    >
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        건의사항 목록으로
+                        건의사항 상세로
                     </Link>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-3">💌 건의사항 작성</h1>
-                    <p className="text-gray-600 text-lg">더 나은 유형연구소를 만들어가는 소중한 의견을 들려주세요</p>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-3">✏️ 건의사항 수정</h1>
+                    <p className="text-gray-600 text-lg">건의사항을 수정하고 더 나은 아이디어로 발전시켜보세요</p>
                 </div>
 
                 {/* 폼 */}
@@ -231,11 +213,11 @@ export default function FeedbackNewPage() {
                         <div className="mb-8">
                             <label className="block text-lg font-semibold text-gray-900 mb-4">📋 건의사항 유형</label>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {categories.map((category) => (
+                                {Object.entries(FEEDBACK_CATEGORIES).map(([key, category]) => (
                                     <label
-                                        key={category.id}
+                                        key={key}
                                         className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 ${
-                                            formData.category === category.name
+                                            formData.category === key
                                                 ? 'border-pink-500 bg-pink-50 text-pink-700'
                                                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                                         }`}
@@ -243,14 +225,14 @@ export default function FeedbackNewPage() {
                                         <input
                                             type="radio"
                                             name="category"
-                                            value={category.name}
-                                            checked={formData.category === category.name}
-                                            onChange={(e) => handleInputChange('category', e.target.value)}
+                                            value={key}
+                                            checked={formData.category === key}
+                                            onChange={(e) => handleInputChange('category', e.target.value as FeedbackCategory)}
                                             className="sr-only"
                                         />
                                         <div className="text-center">
-                                            <div className="text-2xl mb-2">{category.display_name.split(' ')[0]}</div>
-                                            <div className="text-sm font-medium">{category.display_name}</div>
+                                            <div className="text-2xl mb-2">{category.label.split(' ')[0]}</div>
+                                            <div className="text-sm font-medium">{category.label}</div>
                                         </div>
                                     </label>
                                 ))}
@@ -309,24 +291,6 @@ export default function FeedbackNewPage() {
                             )}
                         </div>
 
-                        {/* 공개 설정 - 비공개로 고정 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">🔒 공개 설정</label>
-                            <div className="bg-pink-50 p-6 rounded-xl border-2 border-pink-200">
-                                <div className="flex items-center">
-                                    <span className="text-2xl mr-4">🔒</span>
-                                    <div>
-                                        <div className="font-semibold text-pink-800 text-lg">비공개 (나와 관리자만)</div>
-                                        <div className="text-pink-700 mt-1">
-                                            건의사항은 개인정보 보호를 위해 비공개로만 작성됩니다.
-                                            <br />
-                                            작성자와 관리자만 내용을 확인할 수 있습니다.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* 파일 첨부 */}
                         <div className="mb-8">
                             <label className="block text-lg font-semibold text-gray-900 mb-3">📎 첨부파일 (선택사항)</label>
@@ -364,7 +328,7 @@ export default function FeedbackNewPage() {
                         </div>
 
                         {/* 제출 버튼 */}
-                        <div className="flex justify-center">
+                        <div className="flex justify-center space-x-4">
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
@@ -373,15 +337,21 @@ export default function FeedbackNewPage() {
                                 {isSubmitting ? (
                                     <>
                                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                        제출 중...
+                                        수정 중...
                                     </>
                                 ) : (
                                     <>
                                         <Send className="w-5 h-5 mr-2" />
-                                        건의사항 제출하기
+                                        건의사항 수정하기
                                     </>
                                 )}
                             </button>
+                            <Link
+                                to={`/feedback/${id}`}
+                                className="inline-flex items-center justify-center px-8 py-4 bg-gray-100 text-gray-700 text-lg font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
+                            >
+                                취소
+                            </Link>
                         </div>
                     </form>
                 </div>

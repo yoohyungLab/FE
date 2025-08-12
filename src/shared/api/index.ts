@@ -1,9 +1,45 @@
 import { supabase } from '../lib/supabase';
-import type { Feedback, FeedbackComment, FeedbackFilters, FeedbackCategory, FeedbackVisibility, FeedbackStatus } from '../types';
+import type { Feedback, FeedbackFilters, FeedbackCategory, FeedbackVisibility, FeedbackStatus } from '../types';
+
+// 카테고리 API
+export const categoryApi = {
+    // 모든 카테고리 조회
+    async getAllCategories() {
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // 특정 카테고리 조회
+    async getCategoryById(id: number) {
+        const { data, error } = await supabase.from('categories').select('*').eq('id', id).single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 카테고리별 테스트 조회
+    async getTestsByCategory(categoryName: string) {
+        const { data, error } = await supabase
+            .from('tests')
+            .select('*')
+            .eq('category', categoryName)
+            .eq('is_published', true)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+};
 
 // 피드백 API
 export const feedbackApi = {
-    // 피드백 목록 조회
+    // 피드백 목록 조회 (본인 것만)
     async getFeedbacks(filters: FeedbackFilters = {}, page = 1, limit = 20) {
         let query = supabase.from('feedbacks').select('*').order('created_at', { ascending: false });
 
@@ -13,9 +49,6 @@ export const feedbackApi = {
         }
         if (filters.status) {
             query = query.eq('status', filters.status);
-        }
-        if (filters.visibility) {
-            query = query.eq('visibility', filters.visibility);
         }
         if (filters.search) {
             query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%`);
@@ -41,7 +74,7 @@ export const feedbackApi = {
         return { data, error };
     },
 
-    // 피드백 상세 조회 (조회수 증가)
+    // 피드백 상세 조회
     async getFeedback(id: string, userId?: string) {
         const { data: feedback, error } = await supabase.from('feedbacks').select('*').eq('id', id).single();
 
@@ -49,19 +82,9 @@ export const feedbackApi = {
             return { data: null, error };
         }
 
-        // 접근 권한 체크
-        if (feedback.visibility === 'private' && feedback.author_id !== userId) {
-            // 관리자 권한 체크 로직 추가 필요
-            return { data: null, error: { message: '접근 권한이 없습니다.' } };
-        }
-
-        // 조회수 증가 (작성자가 아닌 경우)
+        // 접근 권한 체크 (본인만)
         if (feedback.author_id !== userId) {
-            await supabase
-                .from('feedbacks')
-                .update({ views: feedback.views + 1 })
-                .eq('id', id);
-            feedback.views += 1;
+            return { data: null, error: { message: '접근 권한이 없습니다.' } };
         }
 
         return { data: feedback, error: null };
@@ -105,14 +128,13 @@ export const feedbackApi = {
         return { error };
     },
 
-    // 관리자 답변 추가
+    // 관리자 답변 추가 (관리자용)
     async addAdminReply(id: string, adminId: string, reply: string) {
         const { data, error } = await supabase
             .from('feedbacks')
             .update({
                 admin_reply: reply,
                 admin_reply_at: new Date().toISOString(),
-                admin_id: adminId,
                 status: 'replied' as FeedbackStatus,
             })
             .eq('id', id)
@@ -122,52 +144,11 @@ export const feedbackApi = {
         return { data, error };
     },
 
-    // 피드백 상태 변경 (관리자만)
+    // 피드백 상태 변경 (관리자용)
     async updateStatus(id: string, status: FeedbackStatus) {
         const { data, error } = await supabase.from('feedbacks').update({ status }).eq('id', id).select().single();
 
         return { data, error };
-    },
-};
-
-// 댓글 API
-export const feedbackCommentApi = {
-    // 댓글 목록 조회
-    async getComments(feedbackId: string) {
-        const { data, error } = await supabase
-            .from('feedback_comments')
-            .select('*')
-            .eq('feedback_id', feedbackId)
-            .order('created_at', { ascending: true });
-
-        return { data, error };
-    },
-
-    // 댓글 작성
-    async createComment(commentData: {
-        feedback_id: string;
-        content: string;
-        author_name: string;
-        author_id?: string;
-        is_admin?: boolean;
-    }) {
-        const { data, error } = await supabase
-            .from('feedback_comments')
-            .insert({
-                ...commentData,
-                is_admin: commentData.is_admin || false,
-            })
-            .select()
-            .single();
-
-        return { data, error };
-    },
-
-    // 댓글 삭제
-    async deleteComment(id: string, userId: string) {
-        const { error } = await supabase.from('feedback_comments').delete().eq('id', id).eq('author_id', userId);
-
-        return { error };
     },
 };
 

@@ -5,8 +5,8 @@ import { HomeCard } from '@/shared/ui/card';
 import { useAuth } from '@/shared/lib/auth';
 import { useFavorites } from '@/shared/hooks/use-favorites';
 import { testApi, sectionApi } from '@/shared/lib/supabase';
-import { CarouselCard } from '@/shared/ui/carousel-card';
-import { balanceGames, tests, topTestsByType } from '@/shared/constants/tests/egen-teto/test-list';
+import { CarouselCard } from '@/shared/ui/cards/carousel-card';
+import { BALANCE_GAMES, MAIN_TESTS, POPULAR_TESTS } from '@/shared/constants';
 import {
     BalanceGameSection,
     CategoryFilter,
@@ -123,28 +123,28 @@ export default function HomePage() {
     const finalTrendingTests =
         trendingTests.length > 0
             ? trendingTests
-            : tests.slice(0, 6).map((test) => ({
+            : MAIN_TESTS.slice(0, 6).map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '테스트',
               }));
     const finalRecommendedTests =
         recommendedTests.length > 0
             ? recommendedTests
-            : tests.slice(1, 7).map((test) => ({
+            : MAIN_TESTS.slice(1, 7).map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '테스트',
               }));
     const finalBalanceGameTests =
         balanceGameTests.length > 0
             ? balanceGameTests
-            : balanceGames.map((test) => ({
+            : BALANCE_GAMES.map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '밸런스 게임',
               }));
     const finalTopByTypeTests =
         topByTypeTests.length > 0
             ? topByTypeTests
-            : topTestsByType.map((test) => ({
+            : POPULAR_TESTS.map((test) => ({
                   ...test,
                   tag: test.tag || '테스트',
               }));

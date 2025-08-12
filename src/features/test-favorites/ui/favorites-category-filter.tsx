@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@/shared/constants/tests/categories';
+import { TEST_CATEGORIES } from '@/shared/constants';
 
 interface FavoritesCategoryFilterProps {
     favoriteCategories: number[];
@@ -17,9 +17,9 @@ export function FavoritesCategoryFilter({ favoriteCategories, selectedCategory, 
                         selectedCategory === category ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'
                     }`}
                 >
-                    {category === '전체' ? '전체' : CATEGORIES[category as keyof typeof CATEGORIES]}
+                    {category === '전체' ? '전체' : TEST_CATEGORIES[category as keyof typeof TEST_CATEGORIES]}
                 </button>
             ))}
         </div>
     );
-} 
+}

@@ -1,7 +1,7 @@
 import { Heart } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '@/constants/tests/categories';
+import { TEST_CATEGORIES } from '@/shared/constants';
 
 interface FavoriteCardProps {
     id: string;
@@ -28,7 +28,7 @@ export function FavoriteCard({ id, title, description, image, category, tags, is
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs bg-pink-100 text-pink-600 font-medium px-2 py-0.5 rounded-full">
-                                #{CATEGORIES[category as keyof typeof CATEGORIES]}
+                                #{TEST_CATEGORIES[category as keyof typeof TEST_CATEGORIES]}
                             </span>
                             {tags?.slice(0, 1).map((tag) => (
                                 <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">

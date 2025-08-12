@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { testApi, sectionApi } from '@/shared/lib/supabase';
-import { tests, balanceGames, topTestsByType } from '@/shared/constants/tests/egen-teto';
+import { MAIN_TESTS, BALANCE_GAMES, POPULAR_TESTS } from '@/shared/constants';
 
 interface DynamicTest {
     id: string;
@@ -106,28 +106,28 @@ export function useTestData() {
     const finalTrendingTests =
         trendingTests.length > 0
             ? trendingTests
-            : tests.slice(0, 6).map((test) => ({
+            : MAIN_TESTS.slice(0, 6).map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '테스트',
               }));
     const finalRecommendedTests =
         recommendedTests.length > 0
             ? recommendedTests
-            : tests.slice(1, 7).map((test) => ({
+            : MAIN_TESTS.slice(1, 7).map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '테스트',
               }));
     const finalBalanceGameTests =
         balanceGameTests.length > 0
             ? balanceGameTests
-            : balanceGames.map((test) => ({
+            : BALANCE_GAMES.map((test) => ({
                   ...test,
                   tag: test.category ? String(test.category) : '밸런스 게임',
               }));
     const finalTopByTypeTests =
         topByTypeTests.length > 0
             ? topByTypeTests
-            : topTestsByType.map((test) => ({
+            : POPULAR_TESTS.map((test) => ({
                   ...test,
                   tag: test.tag || '테스트',
               }));
@@ -140,4 +140,4 @@ export function useTestData() {
         finalBalanceGameTests,
         finalTopByTypeTests,
     };
-} 
+}

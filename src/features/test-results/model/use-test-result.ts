@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { TestResult } from '@/shared/types/result';
-import { resultData } from '@/shared/constants/tests/egen-teto/result';
+import { EGEN_TETO_RESULTS } from '@/shared/constants';
 
 export function useTestResult() {
     const [searchParams] = useSearchParams();
@@ -26,9 +26,9 @@ export function useTestResult() {
     const scoreParam = resultDataFromStorage?.score;
     const genderParam = resultDataFromStorage?.gender as 'male' | 'female' | null;
 
-    const isValid = resultType && resultData[resultType] && scoreParam !== null && genderParam;
+    const isValid = resultType && EGEN_TETO_RESULTS[resultType] && scoreParam !== null && genderParam;
 
-    const data = isValid ? resultData[resultType] : null;
+    const data = isValid ? EGEN_TETO_RESULTS[resultType] : null;
     const totalScore = scoreParam ? parseInt(scoreParam, 10) : 0;
 
     const handleRestart = () => {
@@ -45,4 +45,4 @@ export function useTestResult() {
         isValid,
         handleRestart,
     };
-} 
+}

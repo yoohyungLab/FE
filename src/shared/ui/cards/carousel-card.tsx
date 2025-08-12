@@ -1,7 +1,7 @@
 import { Heart } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '@/constants/tests/categories';
+import { TEST_CATEGORIES } from '@/shared/constants';
 
 interface CarouselCardProps {
     id: string;
@@ -49,8 +49,10 @@ export function CarouselCard({
             )}
 
             <div className="p-4 space-y-1">
-                {!tag && category && CATEGORIES[category as keyof typeof CATEGORIES] && (
-                    <div className="text-xs text-pink-500 font-medium mb-1">#{CATEGORIES[category as keyof typeof CATEGORIES]}</div>
+                {!tag && category && TEST_CATEGORIES[category as keyof typeof TEST_CATEGORIES] && (
+                    <div className="text-xs text-pink-500 font-medium mb-1">
+                        #{TEST_CATEGORIES[category as keyof typeof TEST_CATEGORIES]}
+                    </div>
                 )}
                 <h3 className="text-base font-semibold text-gray-900 line-clamp-1">{title}</h3>
                 <p className="text-sm text-gray-500 truncate">{description}</p>

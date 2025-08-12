@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Gender } from '@/shared/types/result';
-import { questions } from '@/shared/constants/tests/egen-teto/question';
+import { EGEN_TETO_QUESTIONS } from '@/shared/constants';
 import { Button } from '@/shared/ui/button';
 
 interface QuestionProps {
@@ -13,14 +13,14 @@ function Question({ gender, onComplete }: QuestionProps) {
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState<number[]>([]);
 
-    const question = questions[currentQuestion];
-    const progress = ((currentQuestion + 1) / questions.length) * 100;
+    const question = EGEN_TETO_QUESTIONS[currentQuestion];
+    const progress = ((currentQuestion + 1) / EGEN_TETO_QUESTIONS.length) * 100;
 
     const handleAnswer = (score: number) => {
         const newAnswers = [...answers, score];
         setAnswers(newAnswers);
 
-        if (currentQuestion < questions.length - 1) {
+        if (currentQuestion < EGEN_TETO_QUESTIONS.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
             onComplete(newAnswers);

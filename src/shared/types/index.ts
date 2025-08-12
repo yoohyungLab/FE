@@ -35,7 +35,6 @@ export interface Feedback {
     updated_at: string;
     admin_reply?: string;
     admin_reply_at?: string;
-    admin_id?: string;
 }
 
 export type FeedbackCategory =
@@ -58,19 +57,8 @@ export type FeedbackStatus =
     | 'replied' // 답변완료
     | 'rejected'; // 반려
 
-export interface FeedbackComment {
-    id: string;
-    feedback_id: string;
-    content: string;
-    author_id?: string;
-    author_name: string;
-    is_admin: boolean;
-    created_at: string;
-}
-
 export interface FeedbackFilters {
     category?: FeedbackCategory;
     status?: FeedbackStatus;
-    visibility?: FeedbackVisibility;
     search?: string;
 }
