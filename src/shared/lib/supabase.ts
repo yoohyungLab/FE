@@ -62,16 +62,22 @@ export const getTestResults = async () => {
 
 // 카카오 OAuth 설정
 export const signInWithKakao = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'kakao',
-        options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
-            queryParams: {
-                prompt: 'select_account',
+    try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'kakao',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
             },
-        },
-    });
-    return { data, error };
+        });
+
+        if (error) throw error;
+
+        // 카카오 로그인 성공 후 프로필 상태 확인은 콜백 페이지에서 처리
+        return { data, error: null };
+    } catch (error) {
+        console.error('카카오 로그인 실패:', error);
+        return { data: null, error };
+    }
 };
 
 // 타입 정의

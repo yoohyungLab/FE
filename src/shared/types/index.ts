@@ -26,7 +26,7 @@ export interface Feedback {
     category: FeedbackCategory;
     visibility: FeedbackVisibility;
     status: FeedbackStatus;
-    author_id?: string;
+    user_id?: string;
     author_name: string;
     author_email?: string;
     attached_file_url?: string;

@@ -2,3 +2,4 @@
 export * from './auth';
 export * from './supabase';
 export * from './utils';
+export * from './date';

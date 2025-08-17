@@ -85,7 +85,6 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!isFormValid) return;
 
         try {
@@ -98,122 +97,56 @@ export default function RegisterPage() {
                 return;
             }
 
-            if (isTestEmail(formData.email)) {
-                setError('실제 이메일 주소를 사용해주세요. (gmail.com, naver.com 등)');
-                return;
-            }
-
             if (formData.password !== formData.confirmPassword) {
                 setError('비밀번호가 일치하지 않습니다.');
                 return;
             }
 
-            // 회원가입 시도
+            // 회원가입 시도 (트리거가 자동으로 프로필 생성)
             const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
                     data: {
                         name: formData.name,
-                        full_name: formData.name,
                     },
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
                 },
             });
 
             if (error) {
-                // 에러 메시지 한국어화
-                let errorMessage = '회원가입에 실패했습니다.';
-
-                if (error.code === 'email_address_invalid') {
-                    errorMessage = '유효하지 않은 이메일 주소입니다. 실제 이메일을 사용해주세요. (예: user@gmail.com)';
-                } else if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-                    errorMessage = '이미 가입된 이메일입니다.';
-                } else if (error.message.includes('password')) {
-                    errorMessage = '비밀번호는 최소 5자 이상이어야 합니다.';
-                } else if (error.message.includes('Invalid email')) {
-                    errorMessage = '유효하지 않은 이메일 주소입니다.';
-                } else if (error.message.includes('Database error')) {
-                    errorMessage = '데이터베이스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-                } else if (error.message.includes('Email rate limit exceeded')) {
-                    errorMessage = '이메일 전송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
-                } else if (error.status === 500) {
-                    errorMessage = '서버 오류가 발생했습니다. Supabase 설정을 확인해주세요.';
-                }
-
-                setError(errorMessage);
+                console.error('회원가입 에러:', error);
+                setError(`회원가입에 실패했습니다: ${error.message}`);
                 return;
             }
 
             if (data?.user) {
                 setSuccessMessage('회원가입이 완료되었습니다! 메인으로 이동합니다...');
 
-                // 회원가입 후 자동 로그인 시도
-                if (data.user.email_confirmed_at || data.session) {
-                    await checkAuth();
-                    setTimeout(() => {
-                        navigate('/', { replace: true });
-                    }, 1000);
-                } else {
-                    // 자동 로그인 시도
-                    try {
-                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                            email: formData.email,
-                            password: formData.password,
-                        });
+                // 자동 로그인 시도
+                try {
+                    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                        email: formData.email,
+                        password: formData.password,
+                    });
 
-                        if (signInData?.user && !signInError) {
-                            // 삭제된 사용자 체크
-                            if (signInData.user.user_metadata?.deleted_at) {
-                                await supabase.auth.signOut();
-                                setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
-                                return;
-                            }
-
-                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', signInData.user.id).single();
-
-                            if (profile?.deleted_at) {
-                                await supabase.auth.signOut();
-                                setError('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
-                                return;
-                            }
-
-                            // 프로필이 없으면 생성
-                            if (!profile) {
-                                await supabase.from('profiles').upsert({
-                                    id: signInData.user.id,
-                                    email: signInData.user.email,
-                                    name:
-                                        signInData.user.user_metadata?.name ||
-                                        signInData.user.user_metadata?.full_name ||
-                                        signInData.user.email?.split('@')[0] ||
-                                        '사용자',
-                                    avatar_url: signInData.user.user_metadata?.avatar_url || signInData.user.user_metadata?.picture,
-                                    provider: (signInData.user.app_metadata?.provider as 'kakao' | 'google' | 'email') || 'email',
-                                    created_at: new Date().toISOString(),
-                                });
-                            }
-
-                            await checkAuth();
-                            setTimeout(() => {
-                                navigate('/', { replace: true });
-                            }, 1000);
-                        } else {
-                            // 자동 로그인 실패 시 로그인 페이지로
-                            setSuccessMessage('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다...');
-                            setTimeout(() => {
-                                navigate('/auth/login', { replace: true });
-                            }, 2000);
-                        }
-                    } catch (signInError) {
-                        setSuccessMessage('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다...');
+                    if (signInData?.user && !signInError) {
+                        await checkAuth();
+                        setTimeout(() => {
+                            navigate('/', { replace: true });
+                        }, 1000);
+                    } else {
                         setTimeout(() => {
                             navigate('/auth/login', { replace: true });
                         }, 2000);
                     }
+                } catch (signInError) {
+                    setTimeout(() => {
+                        navigate('/auth/login', { replace: true });
+                    }, 2000);
                 }
             }
         } catch (error) {
+            console.error('회원가입 중 오류:', error);
             setError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);

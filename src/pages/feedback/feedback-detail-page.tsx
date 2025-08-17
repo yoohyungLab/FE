@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, MessageSquare, Edit, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/shared/lib/auth';
 import { feedbackApi } from '@/shared/api';
-import { FEEDBACK_CATEGORIES, FEEDBACK_STATUS } from '@/shared/constants';
+import { FEEDBACK_CATEGORIES } from '@/shared/constants';
 import type { Feedback } from '@/shared/types';
+import { formatKoreanDate } from '@/shared/lib';
+import { useFeedbackStatus } from '@/features/feedback';
 
 export default function FeedbackDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -13,6 +15,7 @@ export default function FeedbackDetailPage() {
     const [feedback, setFeedback] = useState<Feedback | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { getStatusIcon, getStatusText } = useFeedbackStatus();
 
     useEffect(() => {
         if (!user) {
@@ -34,7 +37,7 @@ export default function FeedbackDetailPage() {
             }
 
             // 본인의 피드백만 볼 수 있도록 체크
-            if (data && data.author_id !== user?.id) {
+            if (data && data.user_id !== user?.id) {
                 setError('접근 권한이 없습니다.');
                 return;
             }
@@ -48,7 +51,7 @@ export default function FeedbackDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!feedback || !user?.id || feedback.author_id !== user.id) return;
+        if (!feedback || !user?.id || feedback.user_id !== user.id) return;
 
         if (!confirm('정말 삭제하시겠습니까?')) return;
 
@@ -60,34 +63,6 @@ export default function FeedbackDetailPage() {
             navigate('/feedback');
         } catch (err) {
             setError('삭제에 실패했습니다.');
-        }
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'pending':
-                return <Clock className="w-5 h-5 text-yellow-600" />;
-            case 'completed':
-                return <CheckCircle className="w-5 h-5 text-green-600" />;
-            case 'replied':
-                return <MessageSquare className="w-5 h-5 text-blue-600" />;
-            case 'in_progress':
-                return <AlertCircle className="w-5 h-5 text-blue-600" />;
-            case 'rejected':
-                return <AlertCircle className="w-5 h-5 text-red-600" />;
-            default:
-                return <Clock className="w-5 h-5 text-gray-600" />;
         }
     };
 
@@ -148,8 +123,7 @@ export default function FeedbackDetailPage() {
         );
     }
 
-    const isAuthor = feedback.author_id === user?.id;
-    const canEdit = isAuthor;
+    const isAuthor = feedback.user_id === user?.id;
     const canDelete = isAuthor;
 
     return (
@@ -165,27 +139,16 @@ export default function FeedbackDetailPage() {
                         <span>목록으로 돌아가기</span>
                     </Link>
 
-                    {/* 작성자 메뉴 */}
-                    {(canEdit || canDelete) && (
+                    {/* 작성자 메뉴 (수정 제거) */}
+                    {canDelete && (
                         <div className="flex items-center space-x-2">
-                            {canEdit && (
-                                <Link
-                                    to={`/feedback/${feedback.id}/edit`}
-                                    className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                    <span>수정</span>
-                                </Link>
-                            )}
-                            {canDelete && (
-                                <button
-                                    onClick={handleDelete}
-                                    className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-all duration-200"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>삭제</span>
-                                </button>
-                            )}
+                            <button
+                                onClick={handleDelete}
+                                className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-all duration-200"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>삭제</span>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -196,11 +159,11 @@ export default function FeedbackDetailPage() {
                     <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-pink-50 to-blue-50">
                         <div className="flex items-center space-x-3 mb-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pink-100 text-pink-700">
-                                {FEEDBACK_CATEGORIES[feedback.category]?.label || feedback.category}
+                                {FEEDBACK_CATEGORIES.find((cat) => cat.name === feedback.category)?.label || feedback.category}
                             </span>
                             <span className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                                {getStatusIcon(feedback.status)}
-                                <span>{FEEDBACK_STATUS[feedback.status]?.label || feedback.status}</span>
+                                {getStatusIcon(feedback.status, 'md')}
+                                <span>{getStatusText(feedback.status)}</span>
                             </span>
                         </div>
 
@@ -214,7 +177,7 @@ export default function FeedbackDetailPage() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Calendar className="w-4 h-4" />
-                                    <span>작성일: {formatDate(feedback.created_at)}</span>
+                                    <span>작성일: {formatKoreanDate(feedback.created_at)}</span>
                                 </div>
                             </div>
                         </div>
@@ -253,7 +216,7 @@ export default function FeedbackDetailPage() {
                                 {feedback.admin_reply_at && (
                                     <div className="flex items-center space-x-2 text-sm text-blue-600 mt-4 pt-4 border-t border-blue-100">
                                         <Calendar className="w-4 h-4" />
-                                        <span>{formatDate(feedback.admin_reply_at)} - 운영진 일동</span>
+                                        <span>{formatKoreanDate(feedback.admin_reply_at)} - 운영진 일동</span>
                                     </div>
                                 )}
                             </div>

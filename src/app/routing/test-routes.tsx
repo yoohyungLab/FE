@@ -5,7 +5,7 @@ import { LoginPage } from '@/pages/auth/login';
 import { default as RegisterPage } from '@/pages/auth/register';
 import AuthCallbackPage from '@/pages/auth/auth-callback-page';
 import { FeedbackPage, FeedbackNewPage, FeedbackDetailPage } from '@/pages/feedback';
-import FeedbackEditPage from '@/pages/feedback/feedback-edit-page';
+// import FeedbackEditPage from '@/pages/feedback/feedback-edit-page';
 
 // 테스트 라우트 설정을 객체로 관리
 export const testRoutes = [
@@ -67,8 +67,9 @@ export const feedbackRoutes = [
         path: '/feedback/:id',
         element: <FeedbackDetailPage />,
     },
-    {
-        path: '/feedback/:id/edit',
-        element: <FeedbackEditPage />,
-    },
+    // 수정 기능 비활성화 정책으로 인해 편집 라우트 제거
+    // {
+    //     path: '/feedback/:id/edit',
+    //     element: <FeedbackEditPage />,
+    // },
 ];

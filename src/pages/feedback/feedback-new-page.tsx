@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Send, Plus } from 'lucide-react';
+import { ArrowLeft, Upload, Send, X } from 'lucide-react';
 import { useAuth } from '@/shared/lib/auth';
-import { feedbackApi, spamPreventionApi, categoryApi } from '@/shared/api';
-import { CONTENT_LIMITS } from '@/shared/constants';
-import type { FeedbackCategory } from '@/shared/types';
-
-interface Category {
-    id: number;
-    name: string;
-    display_name: string;
-    description?: string;
-    sort_order: number;
-    is_active: boolean;
-}
+import { feedbackApi, spamPreventionApi } from '@/shared/api';
+import { CONTENT_LIMITS, FEEDBACK_CATEGORIES } from '@/shared/constants';
+import { supabase } from '@/shared/lib';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 
 interface FeedbackFormData {
     title: string;
     content: string;
     category: string;
-    visibility: 'private' | 'public' | 'anonymous';
     attached_file: File | null;
 }
 
@@ -32,41 +23,21 @@ interface ValidationErrors {
 export default function FeedbackNewPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [categories, setCategories] = useState<Category[]>([]);
     const [formData, setFormData] = useState<FeedbackFormData>({
         title: '',
         content: '',
-        category: '',
-        visibility: 'private',
+        category: 'test_idea',
         attached_file: null,
     });
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
     const [characterCount, setCharacterCount] = useState({ title: 0, content: 0 });
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!user) {
-            navigate('/auth/login');
-            return;
-        }
-        loadCategories();
-    }, [user, navigate]);
-
-    const loadCategories = async () => {
-        try {
-            const data = await categoryApi.getAllCategories();
-            setCategories(data);
-            if (data.length > 0) {
-                setFormData((prev) => ({ ...prev, category: data[0].name }));
-            }
-        } catch (error) {
-            console.error('카테고리 로드 실패:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 로그인 체크
+    if (!user) {
+        navigate('/auth/login');
+        return null;
+    }
 
     const handleInputChange = (field: keyof FeedbackFormData, value: string | File | null) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -78,7 +49,7 @@ export default function FeedbackNewPage() {
             setCharacterCount((prev) => ({ ...prev, content: (value as string).length }));
         }
 
-        // 에러 메시지 제거 (타입 안전하게)
+        // 에러 메시지 제거
         if (field in validationErrors) {
             setValidationErrors((prev) => ({ ...prev, [field]: undefined }));
         }
@@ -99,11 +70,7 @@ export default function FeedbackNewPage() {
             errors.content = `내용은 ${CONTENT_LIMITS.CONTENT_MAX}자 이내로 입력해주세요.`;
         }
 
-        if (!formData.category) {
-            errors.title = '카테고리를 선택해주세요.';
-        }
-
-        // 파일 크기 체크
+        // 파일 크기 체크 (파일이 있을 때만)
         if (formData.attached_file) {
             if (formData.attached_file.size > CONTENT_LIMITS.FILE_SIZE_MAX) {
                 errors.attached_file = '파일 크기는 5MB 이하여야 합니다.';
@@ -125,31 +92,44 @@ export default function FeedbackNewPage() {
         try {
             setIsSubmitting(true);
 
-            // 스팸 방지 체크 (간단한 제한 체크)
-            const limitCheck = await spamPreventionApi.checkWriteLimit(user!.id);
+            // 스팸 방지 체크
+            const limitCheck = await spamPreventionApi.checkWriteLimit(user.id);
             if (!limitCheck.allowed) {
                 throw new Error(limitCheck.reason || '작성 제한에 도달했습니다.');
             }
 
-            // 피드백 제출
-            const { error } = await feedbackApi.createFeedback({
-                ...formData,
-                category: formData.category as FeedbackCategory,
-                author_id: user!.id,
-                author_name: user!.name || '익명',
+            // 파일 업로드 처리 (파일이 있을 때만)
+            let attachedFileUrl: string | undefined = undefined;
+            if (formData.attached_file) {
+                try {
+                    const fileName = `${Date.now()}_${formData.attached_file.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('feedback-files')
+                        .upload(fileName, formData.attached_file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage.from('feedback-files').getPublicUrl(fileName);
+
+                    attachedFileUrl = urlData.publicUrl;
+                } catch (uploadError) {
+                    console.warn('파일 업로드 실패:', uploadError);
+                    // 파일 업로드 실패해도 건의사항은 제출되도록 함
+                }
+            }
+
+            // 건의사항 제출 (attached_file_url 사용)
+            await feedbackApi.createFeedback({
+                title: formData.title.trim(),
+                content: formData.content.trim(),
+                category: formData.category,
+                user_id: user.id,
+                author_name: user.name || user.email || '익명',
+                author_email: user.email || '',
+                attached_file_url: attachedFileUrl,
             });
 
-            if (error) throw error;
-
-            setSubmitSuccess(true);
-            // 폼 초기화
-            setFormData({
-                title: '',
-                content: '',
-                category: categories.length > 0 ? categories[0].name : '',
-                visibility: 'private',
-                attached_file: null,
-            });
+            navigate('/feedback');
             setCharacterCount({ title: 0, content: 0 });
             setValidationErrors({});
         } catch (err: any) {
@@ -164,181 +144,104 @@ export default function FeedbackNewPage() {
         handleInputChange('attached_file', file);
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 text-lg">카테고리를 불러오는 중...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (submitSuccess) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50">
-                <div className="max-w-2xl mx-auto px-4 py-16">
-                    <div className="text-center bg-white rounded-2xl shadow-lg p-8 border border-pink-100">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <span className="text-3xl">✅</span>
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">건의사항이 성공적으로 제출되었습니다!</h1>
-                        <p className="text-gray-600 mb-8 leading-relaxed">
-                            소중한 의견을 보내주셔서 감사합니다.
-                            <br />
-                            검토 후 빠른 시일 내에 답변드리도록 하겠습니다.
-                        </p>
-
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <button
-                                onClick={() => setSubmitSuccess(false)}
-                                className="inline-flex items-center justify-center px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
-                            >
-                                <Plus className="w-5 h-5 mr-2" />
-                                추가 건의사항 작성
-                            </button>
-                            <Link
-                                to="/feedback"
-                                className="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-medium"
-                            >
-                                목록으로 돌아가기
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50">
-            <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-2xl mx-auto px-4 py-8">
                 {/* 헤더 */}
-                <div className="text-center mb-8">
-                    <Link to="/feedback" className="inline-flex items-center text-pink-600 hover:text-pink-700 mb-4 transition-colors">
+                <div className="mb-8">
+                    <Link to="/feedback" className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors">
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        건의사항 목록으로
+                        건의사항 목록
                     </Link>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-3">💌 건의사항 작성</h1>
-                    <p className="text-gray-600 text-lg">더 나은 유형연구소를 만들어가는 소중한 의견을 들려주세요</p>
+                    <h1 className="text-2xl font-bold text-gray-900">건의사항 작성</h1>
+                    <p className="mt-2 text-sm text-gray-500">제출 후에는 수정이 불가능합니다. 내용을 한 번 더 확인해주세요.</p>
                 </div>
 
                 {/* 폼 */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <form onSubmit={handleSubmit} className="p-8">
+                <div className="bg-white rounded-xl shadow-sm border">
+                    <form onSubmit={handleSubmit} className="p-6 space-y-6">
                         {/* 카테고리 선택 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-4">📋 건의사항 유형</label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {categories.map((category) => (
-                                    <label
-                                        key={category.id}
-                                        className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 ${
-                                            formData.category === category.name
-                                                ? 'border-pink-500 bg-pink-50 text-pink-700'
-                                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="category"
-                                            value={category.name}
-                                            checked={formData.category === category.name}
-                                            onChange={(e) => handleInputChange('category', e.target.value)}
-                                            className="sr-only"
-                                        />
-                                        <div className="text-center">
-                                            <div className="text-2xl mb-2">{category.display_name.split(' ')[0]}</div>
-                                            <div className="text-sm font-medium">{category.display_name}</div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                            <Select value={formData.category} onValueChange={(value: string) => handleInputChange('category', value)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue>
+                                        <div className="flex items-center gap-2">
+                                            <span>{FEEDBACK_CATEGORIES?.find((cat) => cat.name === formData.category)?.emoji}</span>
+                                            <span>{FEEDBACK_CATEGORIES?.find((cat) => cat.name === formData.category)?.label}</span>
                                         </div>
-                                    </label>
-                                ))}
-                            </div>
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {FEEDBACK_CATEGORIES?.map((category) => (
+                                        <SelectItem key={category.name} value={category.name}>
+                                            <div className="flex items-center gap-2">
+                                                <span>{category.emoji}</span>
+                                                <div>
+                                                    <div className="font-medium">{category.label}</div>
+                                                    <div className="text-xs text-gray-500">{category.description}</div>
+                                                </div>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* 제목 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">📝 제목</label>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => handleInputChange('title', e.target.value)}
-                                    className={`w-full px-4 py-3 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 ${
-                                        validationErrors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                                        validationErrors.title ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                     }`}
                                     placeholder="건의사항의 제목을 입력해주세요"
                                     maxLength={CONTENT_LIMITS.TITLE_MAX}
                                 />
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-400">
+                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
                                     {characterCount.title}/{CONTENT_LIMITS.TITLE_MAX}
                                 </div>
                             </div>
-                            {validationErrors.title && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center">
-                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-                                    {validationErrors.title}
-                                </p>
-                            )}
+                            {validationErrors.title && <p className="mt-1 text-sm text-red-600">{validationErrors.title}</p>}
                         </div>
 
                         {/* 내용 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">✍️ 상세 내용</label>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">상세 내용</label>
                             <div className="relative">
                                 <textarea
                                     value={formData.content}
                                     onChange={(e) => handleInputChange('content', e.target.value)}
                                     rows={8}
-                                    className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 resize-none ${
-                                        validationErrors.content ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
+                                        validationErrors.content ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                     }`}
-                                    placeholder="구체적인 건의사항이나 아이디어를 자세히 설명해주세요&#10;&#10;예시:&#10;- 어떤 문제가 있는지&#10;- 개선이 필요한 부분&#10;- 새로운 아이디어나 제안"
+                                    placeholder="구체적인 건의사항이나 아이디어를 자세히 설명해주세요"
                                     maxLength={CONTENT_LIMITS.CONTENT_MAX}
                                 />
-                                <div className="absolute right-3 bottom-3 text-sm text-gray-400">
+                                <div className="absolute right-3 bottom-3 text-xs text-gray-400">
                                     {characterCount.content}/{CONTENT_LIMITS.CONTENT_MAX}
                                 </div>
                             </div>
-                            {validationErrors.content && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center">
-                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-                                    {validationErrors.content}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* 공개 설정 - 비공개로 고정 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">🔒 공개 설정</label>
-                            <div className="bg-pink-50 p-6 rounded-xl border-2 border-pink-200">
-                                <div className="flex items-center">
-                                    <span className="text-2xl mr-4">🔒</span>
-                                    <div>
-                                        <div className="font-semibold text-pink-800 text-lg">비공개 (나와 관리자만)</div>
-                                        <div className="text-pink-700 mt-1">
-                                            건의사항은 개인정보 보호를 위해 비공개로만 작성됩니다.
-                                            <br />
-                                            작성자와 관리자만 내용을 확인할 수 있습니다.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            {validationErrors.content && <p className="mt-1 text-sm text-red-600">{validationErrors.content}</p>}
                         </div>
 
                         {/* 파일 첨부 */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">📎 첨부파일 (선택사항)</label>
-                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-pink-400 transition-colors duration-200">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일 (선택사항)</label>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                                 <input type="file" onChange={handleFileChange} accept="image/*" className="sr-only" id="file-upload" />
                                 <label htmlFor="file-upload" className="cursor-pointer">
-                                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                    <div className="text-gray-600 mb-2">
-                                        <span className="font-medium text-pink-600 hover:text-pink-700">클릭하여 파일 선택</span>
-                                        <span className="text-gray-500"> 또는 파일을 여기로 드래그</span>
+                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <div className="text-sm text-gray-600 mb-1">
+                                        <span className="font-medium text-blue-600 hover:text-blue-500">클릭하여 파일 선택</span>
+                                        <span className="text-gray-500"> 또는 드래그 앤 드롭</span>
                                     </div>
-                                    <p className="text-sm text-gray-500">PNG, JPG, GIF, WebP 파일 (최대 5MB)</p>
+                                    <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP (최대 5MB)</p>
                                 </label>
                             </div>
                             {formData.attached_file && (
@@ -348,36 +251,33 @@ export default function FeedbackNewPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleInputChange('attached_file', null)}
-                                            className="text-green-600 hover:text-green-700 text-sm"
+                                            className="text-green-600 hover:text-green-700"
                                         >
-                                            제거
+                                            <X className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
                             )}
                             {validationErrors.attached_file && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center">
-                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-                                    {validationErrors.attached_file}
-                                </p>
+                                <p className="mt-1 text-sm text-red-600">{validationErrors.attached_file}</p>
                             )}
                         </div>
 
                         {/* 제출 버튼 */}
-                        <div className="flex justify-center">
+                        <div className="flex justify-center pt-4">
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="inline-flex items-center justify-center px-8 py-4 bg-pink-500 text-white text-lg font-semibold rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                className="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                         제출 중...
                                     </>
                                 ) : (
                                     <>
-                                        <Send className="w-5 h-5 mr-2" />
+                                        <Send className="w-4 h-4 mr-2" />
                                         건의사항 제출하기
                                     </>
                                 )}

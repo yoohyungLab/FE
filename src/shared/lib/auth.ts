@@ -58,9 +58,9 @@ export const useAuth = create<AuthState>((set, get) => ({
 
                     const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
 
-                    if (profile?.deleted_at) {
+                    if (profile && (profile.status === 'deleted' || profile.deleted_at)) {
                         await supabase.auth.signOut();
-                        throw new Error('탈퇴한 계정입니다. 새로운 계정으로 가입해주세요.');
+                        throw new Error('탈퇴된 계정입니다. 새로운 계정으로 가입해주세요.');
                     }
 
                     // 프로필이 없으면 생성

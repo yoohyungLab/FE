@@ -55,7 +55,7 @@ export default function FeedbackEditPage() {
             }
 
             // 본인의 피드백만 수정할 수 있도록 체크
-            if (data && data.author_id !== user?.id) {
+            if (data && data.user_id !== user?.id) {
                 navigate('/feedback');
                 return;
             }
@@ -134,7 +134,7 @@ export default function FeedbackEditPage() {
             // 피드백 수정
             const { error } = await feedbackApi.updateFeedback(id!, user!.id, {
                 ...formData,
-                author_id: user!.id,
+                user_id: user!.id,
                 author_name: user!.name || '익명',
             });
 
@@ -213,11 +213,11 @@ export default function FeedbackEditPage() {
                         <div className="mb-8">
                             <label className="block text-lg font-semibold text-gray-900 mb-4">📋 건의사항 유형</label>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {Object.entries(FEEDBACK_CATEGORIES).map(([key, category]) => (
+                                {FEEDBACK_CATEGORIES.map((category) => (
                                     <label
-                                        key={key}
+                                        key={category.name}
                                         className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 ${
-                                            formData.category === key
+                                            formData.category === category.name
                                                 ? 'border-pink-500 bg-pink-50 text-pink-700'
                                                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                                         }`}
@@ -225,13 +225,13 @@ export default function FeedbackEditPage() {
                                         <input
                                             type="radio"
                                             name="category"
-                                            value={key}
-                                            checked={formData.category === key}
+                                            value={category.name}
+                                            checked={formData.category === category.name}
                                             onChange={(e) => handleInputChange('category', e.target.value as FeedbackCategory)}
                                             className="sr-only"
                                         />
                                         <div className="text-center">
-                                            <div className="text-2xl mb-2">{category.label.split(' ')[0]}</div>
+                                            <div className="text-2xl mb-2">{category.emoji}</div>
                                             <div className="text-sm font-medium">{category.label}</div>
                                         </div>
                                     </label>

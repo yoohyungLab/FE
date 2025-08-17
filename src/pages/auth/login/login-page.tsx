@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
-import { signInWithKakao } from '../../../shared/lib/supabase';
+import { signInWithKakao, supabase } from '../../../shared/lib/supabase';
 import { useAuth } from '../../../shared/lib/auth';
 
 interface LoginFormData {
@@ -62,18 +62,53 @@ export default function LoginPage() {
             setIsLoading(true);
             setError(null);
 
-            await signIn('email', {
+            // 1. Supabase 인증 시도
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             });
 
-            navigate('/');
+            if (authError) throw authError;
+
+            if (authData.user) {
+                // 2. 프로필 상태 확인
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('status, deleted_at')
+                    .eq('id', authData.user.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('프로필 조회 실패:', profileError);
+                    // 프로필이 없으면 기본값으로 처리
+                }
+
+                // 3. 탈퇴된 계정 체크
+                if (profile) {
+                    if (profile.status === 'deleted' || profile.deleted_at) {
+                        // 즉시 로그아웃 처리
+                        await supabase.auth.signOut();
+                        setError('탈퇴된 계정입니다. 새로운 계정으로 가입해주세요.');
+                        return;
+                    }
+                }
+
+                // 4. 정상 로그인 처리
+                await signIn('email', {
+                    email: formData.email,
+                    password: formData.password,
+                });
+
+                navigate('/');
+            }
         } catch (error: any) {
+            console.error('로그인 에러:', error);
+
             if (error.message.includes('탈퇴한 계정')) {
                 setError(error.message);
             } else if (error.message.includes('Email not confirmed') || error.code === 'email_not_confirmed') {
                 setError('이메일 인증이 필요합니다. 개발 환경에서는 Supabase 대시보드에서 이메일 인증을 비활성화해주세요.');
-            } else if (error.message.includes('Invalid')) {
+            } else if (error.message.includes('Invalid') || error.message.includes('Invalid login credentials')) {
                 setError('이메일 또는 비밀번호가 일치하지 않습니다.');
             } else {
                 setError('로그인에 실패했습니다. 다시 시도해주세요.');
